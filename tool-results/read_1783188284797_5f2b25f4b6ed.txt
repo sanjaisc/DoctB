@@ -1,0 +1,1121 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+     4→     4→import { useSearchParams } from "next/navigation";
+     5→     5→import { format } from "date-fns";
+     6→     6→import {
+     7→     7→  Heart,
+     8→     8→  ArrowLeft,
+     9→     9→  ArrowRight,
+    10→    10→  Check,
+    11→    11→  CheckCircle2,
+    12→    12→  Loader2,
+    13→    13→  AlertCircle,
+    14→    14→  Calendar,
+    15→    15→  Clock,
+    16→    16→  User,
+    17→    17→  Baby,
+    18→    18→  Shield,
+    19→    19→  Copy,
+    20→    20→  ExternalLink,
+    21→    21→  Search,
+    22→    22→  MapPin,
+    23→    23→  Building2,
+    24→    24→  Eye,
+    25→    25→  EyeOff,
+    26→    26→} from "lucide-react";
+    27→    27→import Link from "next/link";
+    28→    28→import { Button } from "@/components/ui/button";
+    29→    29→import { Input } from "@/components/ui/input";
+    30→    30→import { Textarea } from "@/components/ui/textarea";
+    31→    31→import { Label } from "@/components/ui/label";
+    32→    32→import {
+    33→    33→  Select,
+    34→    34→  SelectTrigger,
+    35→    35→  SelectValue,
+    36→    36→  SelectContent,
+    37→    37→  SelectItem,
+    38→    38→} from "@/components/ui/select";
+    39→    39→import { Checkbox } from "@/components/ui/checkbox";
+    40→    40→import { Card, CardContent } from "@/components/ui/card";
+    41→    41→import { Badge } from "@/components/ui/badge";
+    42→    42→import { Separator } from "@/components/ui/separator";
+    43→    43→import {
+    44→    44→  ToggleGroup,
+    45→    45→  ToggleGroupItem,
+    46→    46→} from "@/components/ui/toggle-group";
+    47→    47→import { PATIENT_TYPE, SLOT_MODALITY } from "@/lib/enums";
+    48→    48→
+    49→    49→// =============================================================================
+    50→    50→// Types
+    51→    51→// =============================================================================
+    52→    52→
+    53→    53→interface SlotData {
+    54→    54→  slot: {
+    55→    55→    id: string;
+    56→    56→    startTime: string;
+    57→    57→    endTime: string;
+    58→    58→    modality: string;
+    59→    59→    status: string;
+    60→    60→  };
+    61→    61→  provider: {
+    62→    62→    id: string;
+    63→    63→    firstName: string;
+    64→    64→    lastName: string;
+    65→    65→    credentials: string | null;
+    66→    66→    slug: string;
+    67→    67→    clinicId: string;
+    68→    68→  };
+    69→    69→  clinic: {
+    70→    70→    id: string;
+    71→    71→    name: string;
+    72→    72→    slug: string;
+    73→    73→    streetAddress: string;
+    74→    74→    city: string;
+    75→    75→    state: string;
+    76→    76→    zipCode: string;
+    77→    77→    phoneNumber: string;
+    78→    78→    selfPayFlatRateCents: number | null;
+    79→    79→    inPersonDepositCents: number | null;
+    80→    80→    videoDepositCents: number | null;
+    81→    81→  };
+    82→    82→  specialty: { id: string; name: string } | null;
+    83→    83→  serviceId: string | null;
+    84→    84→}
+    85→    85→
+    86→    86→// =============================================================================
+    87→    87→// Helpers
+    88→    88→// =============================================================================
+    89→    89→
+    90→    90→function formatSlotTime(startTime: string): string {
+    91→    91→  return format(new Date(startTime), "EEEE, MMMM d, yyyy · h:mm a");
+    92→    92→}
+    93→    93→
+    94→    94→function ModalityBadge({ modality }: { modality: string }) {
+    95→    95→  const isVideo = modality === SLOT_MODALITY.VIDEO;
+    96→    96→  return (
+    97→    97→    <span
+    98→    98→      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+    99→    99→        isVideo
+   100→   100→          ? "bg-blue-100 text-blue-700"
+   101→   101→          : "bg-emerald-100 text-emerald-700"
+   102→   102→      }`}
+   103→   103→    >
+   104→   104→      {isVideo ? "Video" : "In-Clinic"}
+   105→   105→    </span>
+   106→   106→  );
+   107→   107→}
+   108→   108→
+   109→   109→function maskName(name: string): string {
+   110→   110→  const parts = name.trim().split(/\s+/);
+   111→   111→  if (parts.length === 0) return name;
+   112→   112→  return parts
+   113→   113→    .map((part) => {
+   114→   114→      if (part.length <= 2) return part[0] + "**";
+   115→   115→      return part[0] + "*".repeat(part.length - 2) + part[part.length - 1];
+   116→   116→    })
+   117→   117→    .join(" ");
+   118→   118→}
+   119→   119→
+   120→   120→function formatCents(cents: number | null): string {
+   121→   121→  if (cents == null || cents === 0) return "No payment required";
+   122→   122→  return `$${(cents / 100).toFixed(2)}`;
+   123→   123→}
+   124→   124→
+   125→   125→function getTodayDateString(): string {
+   126→   126→  return format(new Date(), "yyyy-MM-dd");
+   127→   127→}
+   128→   128→
+   129→   129→// =============================================================================
+   130→   130→// Progress Indicator
+   131→   131→// =============================================================================
+   132→   132→
+   133→   133→const STEP_LABELS = [
+   134→   134→  "Visit Details",
+   135→   135→  "Your Info",
+   136→   136→  "Review & Confirm",
+   137→   137→  "Confirmation",
+   138→   138→];
+   139→   139→
+   140→   140→function ProgressIndicator({ currentStep }: { currentStep: number }) {
+   141→   141→  return (
+   142→   142→    <div className="w-full max-w-2xl mx-auto px-4 py-6">
+   143→   143→      <div className="flex items-center justify-between">
+   144→   144→        {STEP_LABELS.map((label, idx) => {
+   145→   145→          const stepNum = idx + 1;
+   146→   146→          const isCompleted = stepNum < currentStep;
+   147→   147→          const isActive = stepNum === currentStep;
+   148→   148→          const isFuture = stepNum > currentStep;
+   149→   149→
+   150→   150→          return (
+   151→   151→            <div key={stepNum} className="flex items-center flex-1 last:flex-none">
+   152→   152→              {/* Step circle + label */}
+   153→   153→              <div className="flex flex-col items-center gap-1.5">
+   154→   154→                <div
+   155→   155→                  className={`flex items-center justify-center size-8 rounded-full text-sm font-semibold transition-colors duration-300 ${
+   156→   156→                    isCompleted
+   157→   157→                      ? "bg-emerald-600 text-white"
+   158→   158→                      : isActive
+   159→   159→                      ? "bg-emerald-600 text-white ring-4 ring-emerald-100"
+   160→   160→                      : "bg-gray-200 text-gray-400"
+   161→   161→                  }`}
+   162→   162→                >
+   163→   163→                  {isCompleted ? (
+   164→   164→                    <Check className="size-4" />
+   165→   165→                  ) : (
+   166→   166→                    stepNum
+   167→   167→                  )}
+   168→   168→                </div>
+   169→   169→                <span
+   170→   170→                  className={`text-[11px] sm:text-xs text-center leading-tight max-w-[72px] ${
+   171→   171→                    isActive
+   172→   172→                      ? "text-emerald-700 font-medium"
+   173→   173→                      : isCompleted
+   174→   174→                      ? "text-emerald-600 font-medium"
+   175→   175→                      : "text-muted-foreground"
+   176→   176→                  }`}
+   177→   177→                >
+   178→   178→                  {stepNum}. {label}
+   179→   179→                </span>
+   180→   180→              </div>
+   181→   181→
+   182→   182→              {/* Connector line */}
+   183→   183→              {idx < STEP_LABELS.length - 1 && (
+   184→   184→                <div className="flex-1 mx-2 mt-[-18px]">
+   185→   185→                  <div
+   186→   186→                    className={`h-0.5 rounded-full transition-colors duration-300 ${
+   187→   187→                      stepNum < currentStep
+   188→   188→                        ? "bg-emerald-600"
+   189→   189→                        : "bg-gray-200"
+   190→   190→                    }`}
+   191→   191→                  />
+   192→   192→                </div>
+   193→   193→              )}
+   194→   194→            </div>
+   195→   195→          );
+   196→   196→        })}
+   197→   197→      </div>
+   198→   198→    </div>
+   199→   199→  );
+   200→   200→}
+   201→   201→
+   202→   202→// =============================================================================
+   203→   203→// Booking Wizard Page
+   204→   204→// =============================================================================
+   205→   205→
+   206→   206→export default function BookingPage() {
+   207→   207→  const searchParams = useSearchParams();
+   208→   208→  const providerId = searchParams.get("providerId") ?? "";
+   209→   209→  const slotId = searchParams.get("slotId") ?? "";
+   210→   210→  const urlSpecialtyId = searchParams.get("specialtyId") ?? "";
+   211→   211→
+   212→   212→  // ---- Core State ----
+   213→   213→  const [step, setStep] = useState(1);
+   214→   214→  const [slotData, setSlotData] = useState<SlotData | null>(null);
+   215→   215→  const [loading, setLoading] = useState(true);
+   216→   216→  const [error, setError] = useState<string | null>(null);
+   217→   217→
+   218→   218→  // ---- Step 1 State ----
+   219→   219→  const [reasonForVisit, setReasonForVisit] = useState("");
+   220→   220→  const [patientType, setPatientType] = useState<"ADULT" | "PEDIATRIC">(
+   221→   221→    (searchParams.get("patientType") as "ADULT" | "PEDIATRIC") || "ADULT"
+   222→   222→  );
+   223→   223→  const [guardianName, setGuardianName] = useState("");
+   224→   224→  const [guardianRelation, setGuardianRelation] = useState("");
+   225→   225→  const [guardianConfirmed, setGuardianConfirmed] = useState(false);
+   226→   226→
+   227→   227→  // ---- Step 2 State ----
+   228→   228→  const [patientName, setPatientName] = useState("");
+   229→   229→  const [patientDob, setPatientDob] = useState("");
+   230→   230→  const [patientPhone, setPatientPhone] = useState("");
+   231→   231→  const [patientEmail, setPatientEmail] = useState("");
+   232→   232→
+   233→   233→  // ---- Step 3 State ----
+   234→   234→  const [agreed, setAgreed] = useState(false);
+   235→   235→  const [isSubmitting, setIsSubmitting] = useState(false);
+   236→   236→  const [stepError, setStepError] = useState<string | null>(null);
+   237→   237→  const lockKeyRef = useRef<string>(crypto.randomUUID());
+   238→   238→
+   239→   239→  // ---- Step 4 State ----
+   240→   240→  const [appointmentResult, setAppointmentResult] = useState<{
+   241→   241→    id: string;
+   242→   242→    startTime: string;
+   243→   243→    patientName: string;
+   244→   244→    clinicName: string;
+   245→   245→    providerName: string;
+   246→   246→    providerCredentials?: string;
+   247→   247→  } | null>(null);
+   248→   248→  const [rawToken, setRawToken] = useState("");
+   249→   249→  const [showToken, setShowToken] = useState(false);
+   250→   250→  const [copied, setCopied] = useState(false);
+   251→   251→
+   252→   252→  // ---- Derived values ----
+   253→   253→  const specialtyId = useMemo(() => {
+   254→   254→    if (urlSpecialtyId) return urlSpecialtyId;
+   255→   255→    return slotData?.specialty?.id ?? "";
+   256→   256→  }, [urlSpecialtyId, slotData]);
+   257→   257→
+   258→   258→  const serviceId = useMemo(() => {
+   259→   259→    return slotData?.serviceId ?? "";
+   260→   260→  }, [slotData]);
+   261→   261→
+   262→   262→  const depositCents = useMemo(() => {
+   263→   263→    if (!slotData) return 0;
+   264→   264→    if (slotData.slot.modality === SLOT_MODALITY.VIDEO) {
+   265→   265→      return slotData.clinic.videoDepositCents ?? 0;
+   266→   266→    }
+   267→   267→    return slotData.clinic.inPersonDepositCents ?? 0;
+   268→   268→  }, [slotData]);
+   269→   269→
+   270→   270→  const depositDisplay = useMemo(() => formatCents(depositCents), [depositCents]);
+   271→   271→
+   272→   272→  // ---- Fetch slot data on mount ----
+   273→   273→  useEffect(() => {
+   274→   274→    if (!slotId) {
+   275→   275→      setError("No slot ID provided. Please select a time slot from the search page.");
+   276→   276→      setLoading(false);
+   277→   277→      return;
+   278→   278→    }
+   279→   279→
+   280→   280→    async function fetchSlot() {
+   281→   281→      try {
+   282→   282→        const res = await fetch(`/api/slots/${slotId}`);
+   283→   283→        if (!res.ok) {
+   284→   284→          const body = await res.json().catch(() => ({}));
+   285→   285→          throw new Error(body.error ?? `Failed to load slot (${res.status})`);
+   286→   286→        }
+   287→   287→        const data: SlotData = await res.json();
+   288→   288→        setSlotData(data);
+   289→   289→      } catch (err) {
+   290→   290→        setError(err instanceof Error ? err.message : "Failed to load appointment details.");
+   291→   291→      } finally {
+   292→   292→        setLoading(false);
+   293→   293→      }
+   294→   294→    }
+   295→   295→    fetchSlot();
+   296→   296→  }, [slotId]);
+   297→   297→
+   298→   298→  // ---- Validation helpers ----
+   299→   299→  const validateStep1 = useCallback((): boolean => {
+   300→   300→    if (!reasonForVisit.trim()) return false;
+   301→   301→    if (patientType === "PEDIATRIC") {
+   302→   302→      if (!guardianName.trim() || !guardianRelation || !guardianConfirmed) return false;
+   303→   303→    }
+   304→   304→    return true;
+   305→   305→  }, [reasonForVisit, patientType, guardianName, guardianRelation, guardianConfirmed]);
+   306→   306→
+   307→   307→  const validateStep2 = useCallback((): boolean => {
+   308→   308→    if (!patientName.trim()) return false;
+   309→   309→    if (!patientDob) return false;
+   310→   310→    if (!patientPhone.trim()) return false;
+   311→   311→    if (!patientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientEmail)) return false;
+   312→   312→    return true;
+   313→   313→  }, [patientName, patientDob, patientPhone, patientEmail]);
+   314→   314→
+   315→   315→  // ---- Step navigation ----
+   316→   316→  const goNext = () => {
+   317→   317→    setStepError(null);
+   318→   318→    if (step === 1 && validateStep1()) setStep(2);
+   319→   319→    else if (step === 2 && validateStep2()) setStep(3);
+   320→   320→  };
+   321→   321→
+   322→   322→  const goBack = () => {
+   323→   323→    setStepError(null);
+   324→   324→    if (step > 1 && step < 4) setStep(step - 1);
+   325→   325→  };
+   326→   326→
+   327→   327→  // ---- Release lock helper ----
+   328→   328→  const releaseLock = useCallback(async () => {
+   329→   329→    try {
+   330→   330→      await fetch(`/api/slots/${slotId}/lock?lockKey=${encodeURIComponent(lockKeyRef.current)}`, {
+   331→   331→        method: "DELETE",
+   332→   332→      });
+   333→   333→    } catch {
+   334→   334→      // Silently fail — lock will expire via TTL
+   335→   335→    }
+   336→   336→  }, [slotId]);
+   337→   337→
+   338→   338→  // ---- Submit appointment ----
+   339→   339→  const handleConfirm = useCallback(async () => {
+   340→   340→    if (!agreed) {
+   341→   341→      setStepError("Please agree to the cancellation policy to proceed.");
+   342→   342→      return;
+   343→   343→    }
+   344→   344→    if (!slotData || !specialtyId || !serviceId) {
+   345→   345→      setStepError("Missing required booking data. Please go back and try again.");
+   346→   346→      return;
+   347→   347→    }
+   348→   348→
+   349→   349→    setIsSubmitting(true);
+   350→   350→    setStepError(null);
+   351→   351→    const lockKey = lockKeyRef.current;
+   352→   352→
+   353→   353→    try {
+   354→   354→      // 1. Lock the slot
+   355→   355→      const lockRes = await fetch(`/api/slots/${slotId}/lock`, {
+   356→   356→        method: "POST",
+   357→   357→        headers: { "Content-Type": "application/json" },
+   358→   358→        body: JSON.stringify({ lockKey }),
+   359→   359→      });
+   360→   360→
+   361→   361→      if (!lockRes.ok) {
+   362→   362→        const lockBody = await lockRes.json().catch(() => ({}));
+   363→   363→        if (lockRes.status === 409 && lockBody.code === "SLOT_TAKEN") {
+   364→   364→          setStepError("This time slot was just booked by someone else.");
+   365→   365→          return;
+   366→   366→        }
+   367→   367→        throw new Error(lockBody.error ?? `Failed to lock slot (${lockRes.status})`);
+   368→   368→      }
+   369→   369→
+   370→   370→      // 2. Create appointment
+   371→   371→      const appointmentBody = {
+   372→   372→        slotId,
+   373→   373→        lockKey,
+   374→   374→        patientName: patientName.trim(),
+   375→   375→        patientDob,
+   376→   376→        patientPhone: patientPhone.trim(),
+   377→   377→        patientEmail: patientEmail.trim(),
+   378→   378→        patientType,
+   379→   379→        reasonForVisit: reasonForVisit.trim(),
+   380→   380→        specialtyId,
+   381→   381→        serviceId,
+   382→   382→        guardianName: patientType === "PEDIATRIC" ? guardianName.trim() : undefined,
+   383→   383→        guardianRelation: patientType === "PEDIATRIC" ? guardianRelation : undefined,
+   384→   384→        paymentMethod: "MANUAL_WAIVER" as const,
+   385→   385→        depositCents: 0,
+   386→   386→        selfPayCents: 0,
+   387→   387→        isDemoInsurance: false,
+   388→   388→      };
+   389→   389→
+   390→   390→      const apptRes = await fetch("/api/appointments", {
+   391→   391→        method: "POST",
+   392→   392→        headers: { "Content-Type": "application/json" },
+   393→   393→        body: JSON.stringify(appointmentBody),
+   394→   394→      });
+   395→   395→
+   396→   396→      if (!apptRes.ok) {
+   397→   397→        const apptBody = await apptRes.json().catch(() => ({}));
+   398→   398→        // Release lock on failure
+   399→   399→        await releaseLock();
+   400→   400→        if (apptRes.status === 409 && apptBody.code === "SLOT_TAKEN") {
+   401→   401→          setStepError("This time slot was just booked by someone else.");
+   402→   402→          return;
+   403→   403→        }
+   404→   404→        throw new Error(apptBody.error ?? `Failed to create appointment (${apptRes.status})`);
+   405→   405→      }
+   406→   406→
+   407→   407→      const apptData = await apptRes.json();
+   408→   408→      setRawToken(apptData.token);
+   409→   409→      setAppointmentResult(apptData.appointment);
+   410→   410→      setStep(4);
+   411→   411→    } catch (err) {
+   412→   412→      await releaseLock();
+   413→   413→      setStepError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+   414→   414→    } finally {
+   415→   415→      setIsSubmitting(false);
+   416→   416→    }
+   417→   417→  }, [
+   418→   418→    agreed,
+   419→   419→    slotData,
+   420→   420→    specialtyId,
+   421→   421→    serviceId,
+   422→   422→    slotId,
+   423→   423→    patientName,
+   424→   424→    patientDob,
+   425→   425→    patientPhone,
+   426→   426→    patientEmail,
+   427→   427→    patientType,
+   428→   428→    reasonForVisit,
+   429→   429→    guardianName,
+   430→   430→    guardianRelation,
+   431→   431→    releaseLock,
+   432→   432→  ]);
+   433→   433→
+   434→   434→  // ---- Copy token ----
+   435→   435→  const handleCopyToken = useCallback(async () => {
+   436→   436→    const tokenUrl = `${window.location.origin}/manage/${rawToken}`;
+   437→   437→    try {
+   438→   438→      await navigator.clipboard.writeText(tokenUrl);
+   439→   439→      setCopied(true);
+   440→   440→      setTimeout(() => setCopied(false), 2000);
+   441→   441→    } catch {
+   442→   442→      // Fallback
+   443→   443→      const textarea = document.createElement("textarea");
+   444→   444→      textarea.value = tokenUrl;
+   445→   445→      document.body.appendChild(textarea);
+   446→   446→      textarea.select();
+   447→   447→      document.execCommand("copy");
+   448→   448→      document.body.removeChild(textarea);
+   449→   449→      setCopied(true);
+   450→   450→      setTimeout(() => setCopied(false), 2000);
+   451→   451→    }
+   452→   452→  }, [rawToken]);
+   453→   453→
+   454→   454→  // ---- Provider display name ----
+   455→   455→  const providerDisplayName = useMemo(() => {
+   456→   456→    if (!slotData) return "";
+   457→   457→    const name = `${slotData.provider.firstName} ${slotData.provider.lastName}`;
+   458→   458→    return slotData.provider.credentials
+   459→   459→      ? `Dr. ${name}, ${slotData.provider.credentials}`
+   460→   460→      : `Dr. ${name}`;
+   461→   461→  }, [slotData]);
+   462→   462→
+   463→   463→  const clinicAddress = useMemo(() => {
+   464→   464→    if (!slotData) return "";
+   465→   465→    return [
+   466→   466→      slotData.clinic.streetAddress,
+   467→   467→      slotData.clinic.city,
+   468→   468→      slotData.clinic.state,
+   469→   469→      slotData.clinic.zipCode,
+   470→   470→    ]
+   471→   471→      .filter(Boolean)
+   472→   472→      .join(", ");
+   473→   473→  }, [slotData]);
+   474→   474→
+   475→   475→  // ===========================================================================
+   476→   476→  // Loading State
+   477→   477→  // ===========================================================================
+   478→   478→  if (loading) {
+   479→   479→    return (
+   480→   480→      <div className="min-h-screen flex flex-col bg-background">
+   481→   481→        <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
+   482→   482→          <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+   483→   483→            <div className="flex items-center gap-2 cursor-pointer">
+   484→   484→              <Heart className="size-6 text-emerald-600 fill-emerald-600" />
+   485→   485→              <span className="text-lg font-bold tracking-tight text-foreground">
+   486→   486→                ClinicBook
+   487→   487→              </span>
+   488→   488→            </div>
+   489→   489→            <Button variant="outline" size="sm" className="cursor-pointer">
+   490→   490→              Staff Login
+   491→   491→            </Button>
+   492→   492→          </div>
+   493→   493→        </header>
+   494→   494→        <div className="flex-1 flex items-center justify-center py-20">
+   495→   495→          <Loader2 className="size-8 animate-spin text-emerald-600" />
+   496→   496→        </div>
+   497→   497→      </div>
+   498→   498→    );
+   499→   499→  }
+   500→   500→
+   501→   501→  // ===========================================================================
+   502→   502→  // Error State
+   503→   503→  // ===========================================================================
+   504→   504→  if (error || !slotData) {
+   505→   505→    return (
+   506→   506→      <div className="min-h-screen flex flex-col bg-background">
+   507→   507→        <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
+   508→   508→          <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+   509→   509→            <div className="flex items-center gap-2 cursor-pointer">
+   510→   510→              <Heart className="size-6 text-emerald-600 fill-emerald-600" />
+   511→   511→              <span className="text-lg font-bold tracking-tight text-foreground">
+   512→   512→                ClinicBook
+   513→   513→              </span>
+   514→   514→            </div>
+   515→   515→            <Button variant="outline" size="sm" className="cursor-pointer">
+   516→   516→              Staff Login
+   517→   517→            </Button>
+   518→   518→          </div>
+   519→   519→        </header>
+   520→   520→        <div className="flex-1 flex items-center justify-center py-20 px-4">
+   521→   521→          <div className="flex flex-col items-center text-center space-y-4 max-w-md">
+   522→   522→            <AlertCircle className="size-10 text-destructive" />
+   523→   523→            <div className="space-y-1">
+   524→   524→              <p className="font-medium text-foreground">Unable to load appointment</p>
+   525→   525→              <p className="text-sm text-muted-foreground">{error || "Slot data not found."}</p>
+   526→   526→            </div>
+   527→   527→            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+   528→   528→              <Link href="/">
+   529→   529→                <Search className="size-4" />
+   530→   530→                Back to Search
+   531→   531→              </Link>
+   532→   532→            </Button>
+   533→   533→          </div>
+   534→   534→        </div>
+   535→   535→      </div>
+   536→   536→    );
+   537→   537→  }
+   538→   538→
+   539→   539→  // ===========================================================================
+   540→   540→  // Step 4 — Confirmation (separate layout, no progress bar needed)
+   541→   541→  // ===========================================================================
+   542→   542→  if (step === 4 && appointmentResult) {
+   543→   543→    return (
+   544→   544→      <div className="min-h-screen flex flex-col bg-background">
+   545→   545→        <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
+   546→   546→          <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+   547→   547→            <div className="flex items-center gap-2 cursor-pointer">
+   548→   548→              <Heart className="size-6 text-emerald-600 fill-emerald-600" />
+   549→   549→              <span className="text-lg font-bold tracking-tight text-foreground">
+   550→   550→                ClinicBook
+   551→   551→              </span>
+   552→   552→            </div>
+   553→   553→            <Button variant="outline" size="sm" className="cursor-pointer">
+   554→   554→              Staff Login
+   555→   555→            </Button>
+   556→   556→          </div>
+   557→   557→        </header>
+   558→   558→
+   559→   559→        <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-10 space-y-6">
+   560→   560→          {/* Success Icon */}
+   561→   561→          <div className="flex flex-col items-center text-center space-y-4">
+   562→   562→            <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center">
+   563→   563→              <CheckCircle2 className="size-10 text-emerald-600" />
+   564→   564→            </div>
+   565→   565→            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+   566→   566→              Appointment Confirmed!
+   567→   567→            </h1>
+   568→   568→            <p className="text-muted-foreground max-w-md">
+   569→   569→              Your appointment has been booked successfully. Check your email for a confirmation.
+   570→   570→            </p>
+   571→   571→          </div>
+   572→   572→
+   573→   573→          {/* Appointment Details Card */}
+   574→   574→          <Card>
+   575→   575→            <CardContent className="p-5 space-y-3">
+   576→   576→              <div className="flex items-start gap-3">
+   577→   577→                <Calendar className="size-4 text-emerald-600 mt-0.5 shrink-0" />
+   578→   578→                <div>
+   579→   579→                  <p className="text-sm font-medium">{formatSlotTime(appointmentResult.startTime)}</p>
+   580→   580→                  <div className="mt-1">
+   581→   581→                    <ModalityBadge modality={slotData.slot.modality} />
+   582→   582→                  </div>
+   583→   583→                </div>
+   584→   584→              </div>
+   585→   585→              <Separator />
+   586→   586→              <div className="flex items-start gap-3">
+   587→   587→                <User className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+   588→   588→                <div>
+   589→   589→                  <p className="text-sm font-medium">{appointmentResult.providerName}</p>
+   590→   590→                  {appointmentResult.providerCredentials && (
+   591→   591→                    <p className="text-xs text-muted-foreground">{appointmentResult.providerCredentials}</p>
+   592→   592→                  )}
+   593→   593→                </div>
+   594→   594→              </div>
+   595→   595→              <Separator />
+   596→   596→              <div className="flex items-start gap-3">
+   597→   597→                <Building2 className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+   598→   598→                <p className="text-sm text-muted-foreground">{appointmentResult.clinicName}</p>
+   599→   599→              </div>
+   600→   600→              <Separator />
+   601→   601→              <div className="flex items-start gap-3">
+   602→   602→                <Shield className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+   603→   603→                <p className="text-sm text-muted-foreground">
+   604→   604→                  Patient: <span className="font-medium text-foreground">{maskName(appointmentResult.patientName)}</span>
+   605→   605→                </p>
+   606→   606→              </div>
+   607→   607→            </CardContent>
+   608→   608→          </Card>
+   609→   609→
+   610→   610→          {/* Token Management */}
+   611→   611→          <Card className="border-emerald-200 bg-emerald-50/40">
+   612→   612→            <CardContent className="p-5 space-y-4">
+   613→   613→              <h3 className="font-semibold text-foreground flex items-center gap-2">
+   614→   614→                <Shield className="size-4 text-emerald-600" />
+   615→   615→                Manage Your Appointment
+   616→   616→              </h3>
+   617→   617→              <p className="text-sm text-muted-foreground">
+   618→   618→                Save this link! You&apos;ll need it to view details, complete intake forms, or make changes.
+   619→   619→              </p>
+   620→   620→
+   621→   621→              <Button
+   622→   622→                variant="outline"
+   623→   623→                onClick={() => setShowToken(!showToken)}
+   624→   624→                className="w-full cursor-pointer justify-center"
+   625→   625→              >
+   626→   626→                {showToken ? (
+   627→   627→                  <>
+   628→   628→                    <EyeOff className="size-4" />
+   629→   629→                    Hide Token Link
+   630→   630→                  </>
+   631→   631→                ) : (
+   632→   632→                  <>
+   633→   633→                    <Eye className="size-4" />
+   634→   634→                    Show Token Link
+   635→   635→                  </>
+   636→   636→                )}
+   637→   637→              </Button>
+   638→   638→
+   639→   639→              {showToken && rawToken && (
+   640→   640→                <div className="rounded-lg border bg-white p-3 space-y-2">
+   641→   641→                  <p className="text-xs text-muted-foreground break-all font-mono">
+   642→   642→                    {window.location.origin}/manage/{rawToken}
+   643→   643→                  </p>
+   644→   644→                  <Button
+   645→   645→                    variant="outline"
+   646→   646→                    size="sm"
+   647→   647→                    onClick={handleCopyToken}
+   648→   648→                    className="w-full cursor-pointer"
+   649→   649→                  >
+   650→   650→                    {copied ? (
+   651→   651→                      <>
+   652→   652→                        <Check className="size-3.5" />
+   653→   653→                        Copied!
+   654→   654→                      </>
+   655→   655→                    ) : (
+   656→   656→                      <>
+   657→   657→                        <Copy className="size-3.5" />
+   658→   658→                        Copy Link
+   659→   659→                      </>
+   660→   660→                    )}
+   661→   661→                  </Button>
+   662→   662→                </div>
+   663→   663→              )}
+   664→   664→            </CardContent>
+   665→   665→          </Card>
+   666→   666→
+   667→   667→          {/* Back to Search */}
+   668→   668→          <div className="flex justify-center pt-2">
+   669→   669→            <Button asChild variant="outline" className="cursor-pointer">
+   670→   670→              <Link href="/">
+   671→   671→                <Search className="size-4" />
+   672→   672→                Back to Search
+   673→   673→              </Link>
+   674→   674→            </Button>
+   675→   675→          </div>
+   676→   676→        </main>
+   677→   677→      </div>
+   678→   678→    );
+   679→   679→  }
+   680→   680→
+   681→   681→  // ===========================================================================
+   682→   682→  // Steps 1-3 — Wizard with Progress Bar
+   683→   683→  // ===========================================================================
+   684→   684→  return (
+   685→   685→    <div className="min-h-screen flex flex-col bg-background">
+   686→   686→      {/* ===== Sticky Header ===== */}
+   687→   687→      <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
+   688→   688→        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+   689→   689→          <div className="flex items-center gap-2 cursor-pointer">
+   690→   690→            <Heart className="size-6 text-emerald-600 fill-emerald-600" />
+   691→   691→            <span className="text-lg font-bold tracking-tight text-foreground">
+   692→   692→              ClinicBook
+   693→   693→            </span>
+   694→   694→          </div>
+   695→   695→          <Button variant="outline" size="sm" className="cursor-pointer">
+   696→   696→            Staff Login
+   697→   697→          </Button>
+   698→   698→        </div>
+   699→   699→      </header>
+   700→   700→
+   701→   701→      {/* ===== Progress Indicator ===== */}
+   702→   702→      <div className="bg-white border-b">
+   703→   703→        <ProgressIndicator currentStep={step} />
+   704→   704→      </div>
+   705→   705→
+   706→   706→      {/* ===== Step Content ===== */}
+   707→   707→      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+   708→   708→        {/* ---- Step 1: Visit Details ---- */}
+   709→   709→        {step === 1 && (
+   710→   710→          <div className="space-y-6 animate-in fade-in duration-300">
+   711→   711→            <div>
+   712→   712→              <h1 className="text-2xl font-bold text-foreground">What brings you in?</h1>
+   713→   713→              <p className="text-muted-foreground mt-1 text-sm">
+   714→   714→                Tell us about your visit so the provider can prepare.
+   715→   715→              </p>
+   716→   716→            </div>
+   717→   717→
+   718→   718→            <Card>
+   719→   719→              <CardContent className="p-5 space-y-5">
+   720→   720→                {/* Reason for Visit */}
+   721→   721→                <div className="space-y-2">
+   722→   722→                  <Label htmlFor="reasonForVisit" className="text-sm font-medium">
+   723→   723→                    Reason for Visit <span className="text-destructive">*</span>
+   724→   724→                  </Label>
+   725→   725→                  <Textarea
+   726→   726→                    id="reasonForVisit"
+   727→   727→                    placeholder="e.g., Annual physical, persistent headache, follow-up for lab results..."
+   728→   728→                    value={reasonForVisit}
+   729→   729→                    onChange={(e) => setReasonForVisit(e.target.value)}
+   730→   730→                    rows={4}
+   731→   731→                    className="resize-none"
+   732→   732→                  />
+   733→   733→                </div>
+   734→   734→
+   735→   735→                <Separator />
+   736→   736→
+   737→   737→                {/* Patient Type */}
+   738→   738→                <div className="space-y-2">
+   739→   739→                  <Label className="text-sm font-medium">
+   740→   740→                    Patient Type <span className="text-destructive">*</span>
+   741→   741→                  </Label>
+   742→   742→                  <ToggleGroup
+   743→   743→                    type="single"
+   744→   744→                    value={patientType}
+   745→   745→                    onValueChange={(val) => {
+   746→   746→                      if (val) setPatientType(val as "ADULT" | "PEDIATRIC");
+   747→   747→                    }}
+   748→   748→                    variant="outline"
+   749→   749→                    className="w-full"
+   750→   750→                  >
+   751→   751→                    <ToggleGroupItem
+   752→   752→                      value="ADULT"
+   753→   753→                      className="flex-1 gap-1.5 cursor-pointer"
+   754→   754→                    >
+   755→   755→                      <User className="size-3.5" />
+   756→   756→                      <span className="text-xs sm:text-sm">Adult</span>
+   757→   757→                    </ToggleGroupItem>
+   758→   758→                    <ToggleGroupItem
+   759→   759→                      value="PEDIATRIC"
+   760→   760→                      className="flex-1 gap-1.5 cursor-pointer"
+   761→   761→                    >
+   762→   762→                      <Baby className="size-3.5" />
+   763→   763→                      <span className="text-xs sm:text-sm">Pediatric</span>
+   764→   764→                    </ToggleGroupItem>
+   765→   765→                  </ToggleGroup>
+   766→   766→                </div>
+   767→   767→
+   768→   768→                {/* Guardian Fields (Pediatric) */}
+   769→   769→                {patientType === "PEDIATRIC" && (
+   770→   770→                  <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+   771→   771→                    <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+   772→   772→                      <Shield className="size-4" />
+   773→   773→                      Guardian Information Required
+   774→   774→                    </div>
+   775→   775→
+   776→   776→                    <div className="space-y-2">
+   777→   777→                      <Label htmlFor="guardianName" className="text-sm">
+   778→   778→                        Guardian Full Name <span className="text-destructive">*</span>
+   779→   779→                      </Label>
+   780→   780→                      <Input
+   781→   781→                        id="guardianName"
+   782→   782→                        placeholder="Jane Smith"
+   783→   783→                        value={guardianName}
+   784→   784→                        onChange={(e) => setGuardianName(e.target.value)}
+   785→   785→                      />
+   786→   786→                    </div>
+   787→   787→
+   788→   788→                    <div className="space-y-2">
+   789→   789→                      <Label htmlFor="guardianRelation" className="text-sm">
+   790→   790→                        Relationship to Patient <span className="text-destructive">*</span>
+   791→   791→                      </Label>
+   792→   792→                      <Select
+   793→   793→                        value={guardianRelation}
+   794→   794→                        onValueChange={setGuardianRelation}
+   795→   795→                      >
+   796→   796→                        <SelectTrigger id="guardianRelation" className="cursor-pointer">
+   797→   797→                          <SelectValue placeholder="Select relationship" />
+   798→   798→                        </SelectTrigger>
+   799→   799→                        <SelectContent>
+   800→   800→                          <SelectItem value="Mother" className="cursor-pointer">Mother</SelectItem>
+   801→   801→                          <SelectItem value="Father" className="cursor-pointer">Father</SelectItem>
+   802→   802→                          <SelectItem value="Legal Guardian" className="cursor-pointer">Legal Guardian</SelectItem>
+   803→   803→                          <SelectItem value="Other" className="cursor-pointer">Other</SelectItem>
+   804→   804→                        </SelectContent>
+   805→   805→                      </Select>
+   806→   806→                    </div>
+   807→   807→
+   808→   808→                    <div className="flex items-start gap-2.5 pt-1">
+   809→   809→                      <Checkbox
+   810→   810→                        id="guardianConfirmed"
+   811→   811→                        checked={guardianConfirmed}
+   812→   812→                        onCheckedChange={(checked) => setGuardianConfirmed(checked === true)}
+   813→   813→                        className="mt-0.5"
+   814→   814→                      />
+   815→   815→                      <Label
+   816→   816→                        htmlFor="guardianConfirmed"
+   817→   817→                        className="text-sm leading-snug cursor-pointer"
+   818→   818→                      >
+   819→   819→                        I confirm I have legal authority to consent for this minor&apos;s treatment
+   820→   820→                      </Label>
+   821→   821→                    </div>
+   822→   822→                  </div>
+   823→   823→                )}
+   824→   824→              </CardContent>
+   825→   825→            </Card>
+   826→   826→          </div>
+   827→   827→        )}
+   828→   828→
+   829→   829→        {/* ---- Step 2: Your Information ---- */}
+   830→   830→        {step === 2 && (
+   831→   831→          <div className="space-y-6 animate-in fade-in duration-300">
+   832→   832→            <div>
+   833→   833→              <h1 className="text-2xl font-bold text-foreground">Your Information</h1>
+   834→   834→              <p className="text-muted-foreground mt-1 text-sm">
+   835→   835→                No account needed — we&apos;ll only use this for your appointment.
+   836→   836→              </p>
+   837→   837→            </div>
+   838→   838→
+   839→   839→            <Card>
+   840→   840→              <CardContent className="p-5 space-y-4">
+   841→   841→                {/* Patient Name */}
+   842→   842→                <div className="space-y-2">
+   843→   843→                  <Label htmlFor="patientName" className="text-sm font-medium">
+   844→   844→                    Full Name <span className="text-destructive">*</span>
+   845→   845→                  </Label>
+   846→   846→                  <Input
+   847→   847→                    id="patientName"
+   848→   848→                    placeholder="John Doe"
+   849→   849→                    value={patientName}
+   850→   850→                    onChange={(e) => setPatientName(e.target.value)}
+   851→   851→                    autoComplete="name"
+   852→   852→                  />
+   853→   853→                </div>
+   854→   854→
+   855→   855→                {/* Date of Birth */}
+   856→   856→                <div className="space-y-2">
+   857→   857→                  <Label htmlFor="patientDob" className="text-sm font-medium">
+   858→   858→                    Date of Birth <span className="text-destructive">*</span>
+   859→   859→                  </Label>
+   860→   860→                  <Input
+   861→   861→                    id="patientDob"
+   862→   862→                    type="date"
+   863→   863→                    max={getTodayDateString()}
+   864→   864→                    value={patientDob}
+   865→   865→                    onChange={(e) => setPatientDob(e.target.value)}
+   866→   866→                  />
+   867→   867→                </div>
+   868→   868→
+   869→   869→                {/* Phone */}
+   870→   870→                <div className="space-y-2">
+   871→   871→                  <Label htmlFor="patientPhone" className="text-sm font-medium">
+   872→   872→                    Phone Number <span className="text-destructive">*</span>
+   873→   873→                  </Label>
+   874→   874→                  <Input
+   875→   875→                    id="patientPhone"
+   876→   876→                    type="tel"
+   877→   877→                    placeholder="(555) 123-4567"
+   878→   878→                    value={patientPhone}
+   879→   879→                    onChange={(e) => setPatientPhone(e.target.value)}
+   880→   880→                    autoComplete="tel"
+   881→   881→                  />
+   882→   882→                </div>
+   883→   883→
+   884→   884→                {/* Email */}
+   885→   885→                <div className="space-y-2">
+   886→   886→                  <Label htmlFor="patientEmail" className="text-sm font-medium">
+   887→   887→                    Email Address <span className="text-destructive">*</span>
+   888→   888→                  </Label>
+   889→   889→                  <Input
+   890→   890→                    id="patientEmail"
+   891→   891→                    type="email"
+   892→   892→                    placeholder="you@example.com"
+   893→   893→                    value={patientEmail}
+   894→   894→                    onChange={(e) => setPatientEmail(e.target.value)}
+   895→   895→                    autoComplete="email"
+   896→   896→                  />
+   897→   897→                </div>
+   898→   898→              </CardContent>
+   899→   899→            </Card>
+   900→   900→          </div>
+   901→   901→        )}
+   902→   902→
+   903→   903→        {/* ---- Step 3: Review & Confirm ---- */}
+   904→   904→        {step === 3 && (
+   905→   905→          <div className="space-y-6 animate-in fade-in duration-300">
+   906→   906→            <div>
+   907→   907→              <h1 className="text-2xl font-bold text-foreground">Review & Confirm</h1>
+   908→   908→              <p className="text-muted-foreground mt-1 text-sm">
+   909→   909→                Please review the details below before confirming your appointment.
+   910→   910→              </p>
+   911→   911→            </div>
+   912→   912→
+   913→   913→            {/* Appointment Summary Card */}
+   914→   914→            <Card>
+   915→   915→              <CardContent className="p-5 space-y-3">
+   916→   916→                {/* Provider */}
+   917→   917→                <div className="flex items-start gap-3">
+   918→   918→                  <User className="size-4 text-emerald-600 mt-0.5 shrink-0" />
+   919→   919→                  <div>
+   920→   920→                    <p className="text-sm font-medium">{providerDisplayName}</p>
+   921→   921→                    {slotData.specialty && (
+   922→   922→                      <p className="text-xs text-muted-foreground">{slotData.specialty.name}</p>
+   923→   923→                    )}
+   924→   924→                  </div>
+   925→   925→                </div>
+   926→   926→
+   927→   927→                <Separator />
+   928→   928→
+   929→   929→                {/* Clinic */}
+   930→   930→                <div className="flex items-start gap-3">
+   931→   931→                  <Building2 className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+   932→   932→                  <div>
+   933→   933→                    <p className="text-sm font-medium">{slotData.clinic.name}</p>
+   934→   934→                    <p className="text-xs text-muted-foreground">{clinicAddress}</p>
+   935→   935→                  </div>
+   936→   936→                </div>
+   937→   937→
+   938→   938→                <Separator />
+   939→   939→
+   940→   940→                {/* Date / Time / Modality */}
+   941→   941→                <div className="flex items-start gap-3">
+   942→   942→                  <Calendar className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+   943→   943→                  <div className="space-y-1">
+   944→   944→                    <p className="text-sm">{formatSlotTime(slotData.slot.startTime)}</p>
+   945→   945→                    <ModalityBadge modality={slotData.slot.modality} />
+   946→   946→                  </div>
+   947→   947→                </div>
+   948→   948→
+   949→   949→                <Separator />
+   950→   950→
+   951→   951→                {/* Patient Type */}
+   952→   952→                <div className="flex items-center gap-3">
+   953→   953→                  {patientType === "PEDIATRIC" ? (
+   954→   954→                    <Baby className="size-4 text-muted-foreground shrink-0" />
+   955→   955→                  ) : (
+   956→   956→                    <User className="size-4 text-muted-foreground shrink-0" />
+   957→   957→                  )}
+   958→   958→                  <p className="text-sm">
+   959→   959→                    <span className="text-muted-foreground">Patient Type:</span>{" "}
+   960→   960→                    <span className="font-medium">
+   961→   961→                      {patientType === "PEDIATRIC" ? "Pediatric" : "Adult"}
+   962→   962→                    </span>
+   963→   963→                  </p>
+   964→   964→                </div>
+   965→   965→
+   966→   966→                {/* Guardian info (pediatric) */}
+   967→   967→                {patientType === "PEDIATRIC" && (
+   968→   968→                  <>
+   969→   969→                    <div className="flex items-center gap-3 pl-7">
+   970→   970→                      <Shield className="size-4 text-muted-foreground shrink-0" />
+   971→   971→                      <p className="text-sm text-muted-foreground">
+   972→   972→                        Guardian: <span className="font-medium text-foreground">{guardianName}</span> ({guardianRelation})
+   973→   973→                      </p>
+   974→   974→                    </div>
+   975→   975→                  </>
+   976→   976→                )}
+   977→   977→
+   978→   978→                <Separator />
+   979→   979→
+   980→   980→                {/* Reason */}
+   981→   981→                <div className="flex items-start gap-3">
+   982→   982→                  <AlertCircle className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+   983→   983→                  <p className="text-sm text-muted-foreground">
+   984→   984→                    <span className="font-medium text-foreground">Reason:</span>{" "}
+   985→   985→                    {reasonForVisit.length > 120
+   986→   986→                      ? reasonForVisit.slice(0, 120) + "..."
+   987→   987→                      : reasonForVisit}
+   988→   988→                  </p>
+   989→   989→                </div>
+   990→   990→
+   991→   991→                <Separator />
+   992→   992→
+   993→   993→                {/* Patient Name (masked) */}
+   994→   994→                <div className="flex items-center gap-3">
+   995→   995→                  <Shield className="size-4 text-muted-foreground shrink-0" />
+   996→   996→                  <p className="text-sm">
+   997→   997→                    <span className="text-muted-foreground">Patient:</span>{" "}
+   998→   998→                    <span className="font-medium">{maskName(patientName)}</span>
+   999→   999→                  </p>
+  1000→  1000→                </div>
+  1001→  1001→
+  1002→  1002→                <Separator />
+  1003→  1003→
+  1004→  1004→                {/* Cost */}
+  1005→  1005→                <div className="flex items-center gap-3">
+  1006→  1006→                  <Clock className="size-4 text-muted-foreground shrink-0" />
+  1007→  1007→                  <p className="text-sm">
+  1008→  1008→                    <span className="text-muted-foreground">Cost:</span>{" "}
+  1009→  1009→                    <span className="font-medium">{depositDisplay}</span>
+  1010→  1010→                  </p>
+  1011→  1011→                </div>
+  1012→  1012→              </CardContent>
+  1013→  1013→            </Card>
+  1014→  1014→
+  1015→  1015→            {/* Agreement */}
+  1016→  1016→            <Card>
+  1017→  1017→              <CardContent className="p-5 space-y-4">
+  1018→  1018→                <div className="flex items-start gap-2.5">
+  1019→  1019→                  <Checkbox
+  1020→  1020→                    id="agreement"
+  1021→  1021→                    checked={agreed}
+  1022→  1022→                    onCheckedChange={(checked) => {
+  1023→  1023→                      setAgreed(checked === true);
+  1024→  1024→                      if (stepError) setStepError(null);
+  1025→  1025→                    }}
+  1026→  1026→                    className="mt-0.5"
+  1027→  1027→                  />
+  1028→  1028→                  <Label
+  1029→  1029→                    htmlFor="agreement"
+  1030→  1030→                    className="text-sm leading-snug cursor-pointer"
+  1031→  1031→                  >
+  1032→  1032→                    I agree to the cancellation policy. Appointments must be
+  1033→  1033→                    cancelled at least 24 hours in advance.
+  1034→  1034→                  </Label>
+  1035→  1035→                </div>
+  1036→  1036→                <p className="text-xs text-muted-foreground pl-6">
+  1037→  1037→                  By proceeding, you agree to our terms. {depositCents > 0 ? `A ${depositDisplay} deposit may be required.` : "No payment is required for this booking."}
+  1038→  1038→                </p>
+  1039→  1039→              </CardContent>
+  1040→  1040→            </Card>
+  1041→  1041→
+  1042→  1042→            {/* Step Error */}
+  1043→  1043→            {stepError && (
+  1044→  1044→              <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+  1045→  1045→                <AlertCircle className="size-4 shrink-0" />
+  1046→  1046→                <div className="flex-1">
+  1047→  1047→                  <p>{stepError}</p>
+  1048→  1048→                  {stepError.includes("booked by someone else") && (
+  1049→  1049→                    <Button
+  1050→  1050→                      asChild
+  1051→  1051→                      variant="outline"
+  1052→  1052→                      size="sm"
+  1053→  1053→                      className="mt-2 border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer"
+  1054→  1054→                    >
+  1055→  1055→                      <Link href="/">
+  1056→  1056→                        <Search className="size-3.5" />
+  1057→  1057→                        Search for Another Time
+  1058→  1058→                      </Link>
+  1059→  1059→                    </Button>
+  1060→  1060→                  )}
+  1061→  1061→                </div>
+  1062→  1062→              </div>
+  1063→  1063→            )}
+  1064→  1064→
+  1065→  1065→            {/* Confirm Button */}
+  1066→  1066→            <Button
+  1067→  1067→              onClick={handleConfirm}
+  1068→  1068→              disabled={isSubmitting || !agreed}
+  1069→  1069→              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold cursor-pointer"
+  1070→  1070→            >
+  1071→  1071→              {isSubmitting ? (
+  1072→  1072→                <>
+  1073→  1073→                  <Loader2 className="size-4 animate-spin" />
+  1074→  1074→                  Confirming...
+  1075→  1075→                </>
+  1076→  1076→              ) : (
+  1077→  1077→                <>
+  1078→  1078→                  <Check className="size-4" />
+  1079→  1079→                  Confirm Appointment
+  1080→  1080→                </>
+  1081→  1081→              )}
+  1082→  1082→            </Button>
+  1083→  1083→          </div>
+  1084→  1084→        )}
+  1085→  1085→      </main>
+  1086→  1086→
+  1087→  1087→      {/* ===== Navigation Footer (Steps 1-3 only) ===== */}
+  1088→  1088→      {step >= 1 && step <= 3 && (
+  1089→  1089→        <div className="border-t bg-white sticky bottom-0">
+  1090→  1090→          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+  1091→  1091→            <Button
+  1092→  1092→              variant="outline"
+  1093→  1093→              onClick={goBack}
+  1094→  1094→              disabled={step === 1}
+  1095→  1095→              className="cursor-pointer"
+  1096→  1096→            >
+  1097→  1097→              <ArrowLeft className="size-4" />
+  1098→  1098→              Back
+  1099→  1099→            </Button>
+  1100→  1100→
+  1101→  1101→            {step < 3 ? (
+  1102→  1102→              <Button
+  1103→  1103→                onClick={goNext}
+  1104→  1104→                disabled={
+  1105→  1105→                  (step === 1 && !validateStep1()) ||
+  1106→  1106→                  (step === 2 && !validateStep2())
+  1107→  1107→                }
+  1108→  1108→                className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+  1109→  1109→              >
+  1110→  1110→                Continue
+  1111→  1111→                <ArrowRight className="size-4" />
+  1112→  1112→              </Button>
+  1113→  1113→            ) : (
+  1114→  1114→              <div className="w-[88px]" /> // Spacer to balance the back button
+  1115→  1115→            )}
+  1116→  1116→          </div>
+  1117→  1117→        </div>
+  1118→  1118→      )}
+  1119→  1119→    </div>
+  1120→  1120→  );
+  1121→  1121→}

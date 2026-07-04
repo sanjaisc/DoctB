@@ -23,6 +23,15 @@ import {
   Building2,
   Eye,
   EyeOff,
+  CreditCard,
+  Mail,
+  FileText,
+  Timer,
+  DollarSign,
+  RefreshCw,
+  Stethoscope,
+  Video,
+  MonitorCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -49,6 +58,18 @@ import { PATIENT_TYPE, SLOT_MODALITY } from "@/lib/enums";
 // =============================================================================
 // Types
 // =============================================================================
+
+interface Insurance {
+  id: string;
+  name: string;
+  slug: string;
+  isDemo: boolean;
+}
+
+interface Service {
+  id: string;
+  name: string;
+}
 
 interface SlotData {
   slot: {
@@ -81,6 +102,7 @@ interface SlotData {
   };
   specialty: { id: string; name: string } | null;
   serviceId: string | null;
+  services: Service[];
 }
 
 // =============================================================================
@@ -91,16 +113,25 @@ function formatSlotTime(startTime: string): string {
   return format(new Date(startTime), "EEEE, MMMM d, yyyy · h:mm a");
 }
 
+function formatSlotDate(startTime: string): string {
+  return format(new Date(startTime), "MMMM d, yyyy");
+}
+
+function formatSlotTimeOnly(startTime: string): string {
+  return format(new Date(startTime), "h:mm a");
+}
+
 function ModalityBadge({ modality }: { modality: string }) {
   const isVideo = modality === SLOT_MODALITY.VIDEO;
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
         isVideo
           ? "bg-blue-100 text-blue-700"
           : "bg-emerald-100 text-emerald-700"
       }`}
     >
+      {isVideo ? <Video className="size-3" /> : <Building2 className="size-3" />}
       {isVideo ? "Video" : "In-Clinic"}
     </span>
   );
@@ -127,21 +158,97 @@ function getTodayDateString(): string {
 }
 
 // =============================================================================
+// Slot Summary Card (visible on ALL steps)
+// =============================================================================
+
+function SlotSummaryCard({ slotData }: { slotData: SlotData }) {
+  const providerName = slotData.provider.credentials
+    ? `Dr. ${slotData.provider.firstName} ${slotData.provider.lastName}, ${slotData.provider.credentials}`
+    : `Dr. ${slotData.provider.firstName} ${slotData.provider.lastName}`;
+
+  const address = [
+    slotData.clinic.streetAddress,
+    slotData.clinic.city,
+    slotData.clinic.state,
+    slotData.clinic.zipCode,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <Card className="border-l-4 border-l-emerald-500 shadow-sm bg-white">
+      <CardContent className="p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="space-y-1.5 min-w-0">
+            {/* Provider */}
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <Stethoscope className="size-4 text-emerald-700" />
+              </div>
+              <p className="text-sm font-semibold text-foreground truncate">{providerName}</p>
+            </div>
+            {/* Clinic */}
+            <div className="flex items-center gap-2 pl-10">
+              <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+              <p className="text-xs text-muted-foreground truncate">{slotData.clinic.name}</p>
+            </div>
+            {/* Address */}
+            <div className="flex items-center gap-2 pl-10">
+              <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+              <p className="text-xs text-muted-foreground truncate">{address}</p>
+            </div>
+          </div>
+          <div className="space-y-1.5 sm:text-right shrink-0 sm:pl-4">
+            {/* Date */}
+            <div className="flex items-center gap-2 sm:justify-end">
+              <Calendar className="size-3.5 text-emerald-600 shrink-0" />
+              <p className="text-xs font-medium text-foreground">{formatSlotDate(slotData.slot.startTime)}</p>
+            </div>
+            {/* Time */}
+            <div className="flex items-center gap-2 sm:justify-end">
+              <Clock className="size-3.5 text-emerald-600 shrink-0" />
+              <p className="text-xs font-medium text-foreground">{formatSlotTimeOnly(slotData.slot.startTime)}</p>
+            </div>
+            {/* Modality */}
+            <div className="flex sm:justify-end mt-0.5">
+              <ModalityBadge modality={slotData.slot.modality} />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// =============================================================================
 // Progress Indicator
 // =============================================================================
 
 const STEP_LABELS = [
-  "Visit Details",
-  "Your Info",
-  "Review & Confirm",
-  "Confirmation",
+  { title: "Visit Details", desc: "Reason & insurance" },
+  { title: "Your Info", desc: "Contact details" },
+  { title: "Review", desc: "Confirm booking" },
+  { title: "Done", desc: "All set!" },
 ];
 
 function ProgressIndicator({ currentStep }: { currentStep: number }) {
   return (
     <div className="w-full max-w-2xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between">
-        {STEP_LABELS.map((label, idx) => {
+      {/* Background track */}
+      <div className="absolute left-0 right-0 top-[calc(50%-1px)] mx-auto max-w-2xl hidden sm:block">
+        <div className="h-0.5 bg-gray-200 w-full rounded-full" />
+        <div
+          className="h-0.5 bg-emerald-600 rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${((Math.min(currentStep, 3)) / 3) * 100}%`,
+            marginLeft: `${(1 / (STEP_LABELS.length * 2)) * 100}%`,
+            marginRight: `${(1 / (STEP_LABELS.length * 2)) * 100}%`,
+          }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between relative">
+        {STEP_LABELS.map((stepInfo, idx) => {
           const stepNum = idx + 1;
           const isCompleted = stepNum < currentStep;
           const isActive = stepNum === currentStep;
@@ -150,38 +257,54 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
           return (
             <div key={stepNum} className="flex items-center flex-1 last:flex-none">
               {/* Step circle + label */}
-              <div className="flex flex-col items-center gap-1.5">
-                <div
-                  className={`flex items-center justify-center size-8 rounded-full text-sm font-semibold transition-colors duration-300 ${
-                    isCompleted
-                      ? "bg-emerald-600 text-white"
-                      : isActive
-                      ? "bg-emerald-600 text-white ring-4 ring-emerald-100"
-                      : "bg-gray-200 text-gray-400"
-                  }`}
-                >
-                  {isCompleted ? (
-                    <Check className="size-4" />
-                  ) : (
-                    stepNum
+              <div className="flex flex-col items-center gap-1.5 relative z-10">
+                <div className="relative">
+                  {isActive && (
+                    <div className="absolute inset-0 size-10 rounded-full bg-emerald-200/60 animate-ping" style={{ animationDuration: "2s" }} />
                   )}
+                  <div
+                    className={`relative flex items-center justify-center size-9 rounded-full text-sm font-semibold transition-all duration-300 ${
+                      isCompleted
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
+                        : isActive
+                        ? "bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-lg shadow-emerald-200"
+                        : "bg-gray-100 text-gray-400 border border-gray-200"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <Check className="size-4" />
+                    ) : (
+                      stepNum
+                    )}
+                  </div>
                 </div>
-                <span
-                  className={`text-[11px] sm:text-xs text-center leading-tight max-w-[72px] ${
-                    isActive
-                      ? "text-emerald-700 font-medium"
-                      : isCompleted
-                      ? "text-emerald-600 font-medium"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {stepNum}. {label}
-                </span>
+                <div className="text-center">
+                  <span
+                    className={`block text-[11px] sm:text-xs leading-tight max-w-[72px] ${
+                      isActive
+                        ? "text-emerald-700 font-semibold"
+                        : isCompleted
+                        ? "text-emerald-600 font-medium"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {stepInfo.title}
+                  </span>
+                  <span
+                    className={`block text-[10px] leading-tight max-w-[72px] mt-0.5 ${
+                      isActive
+                        ? "text-emerald-500"
+                        : "text-muted-foreground/60"
+                    }`}
+                  >
+                    {stepInfo.desc}
+                  </span>
+                </div>
               </div>
 
-              {/* Connector line */}
+              {/* Connector line for mobile (fallback, hidden on sm+) */}
               {idx < STEP_LABELS.length - 1 && (
-                <div className="flex-1 mx-2 mt-[-18px]">
+                <div className="flex-1 mx-2 mt-[-20px] sm:hidden">
                   <div
                     className={`h-0.5 rounded-full transition-colors duration-300 ${
                       stepNum < currentStep
@@ -196,6 +319,45 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
         })}
       </div>
     </div>
+  );
+}
+
+// =============================================================================
+// Confetti Keyframes (CSS)
+// =============================================================================
+
+function ConfettiStyles() {
+  return (
+    <style dangerouslySetInnerHTML={{ __html: `
+      @keyframes checkmark-draw {
+        0% { stroke-dashoffset: 48; }
+        100% { stroke-dashoffset: 0; }
+      }
+      @keyframes checkmark-circle-scale {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes confetti-fall {
+        0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+        100% { transform: translateY(-120px) rotate(360deg) scale(0); opacity: 0; }
+      }
+      .confetti-dot {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        animation: confetti-fall 1.5s ease-out forwards;
+      }
+      .checkmark-svg .checkmark-path {
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: checkmark-draw 0.5s ease-out 0.3s forwards;
+      }
+      .checkmark-circle-anim {
+        animation: checkmark-circle-scale 0.4s ease-out forwards;
+      }
+    ` }} />
   );
 }
 
@@ -215,6 +377,11 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ---- Taxonomies State ----
+  const [insurances, setInsurances] = useState<Insurance[]>([]);
+  const [selectedInsuranceId, setSelectedInsuranceId] = useState<string>("");
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+
   // ---- Step 1 State ----
   const [reasonForVisit, setReasonForVisit] = useState("");
   const [patientType, setPatientType] = useState<"ADULT" | "PEDIATRIC">(
@@ -223,6 +390,7 @@ export default function BookingPage() {
   const [guardianName, setGuardianName] = useState("");
   const [guardianRelation, setGuardianRelation] = useState("");
   const [guardianConfirmed, setGuardianConfirmed] = useState(false);
+  const [showGuardian, setShowGuardian] = useState(false);
 
   // ---- Step 2 State ----
   const [patientName, setPatientName] = useState("");
@@ -256,20 +424,60 @@ export default function BookingPage() {
   }, [urlSpecialtyId, slotData]);
 
   const serviceId = useMemo(() => {
+    if (selectedServiceId) return selectedServiceId;
     return slotData?.serviceId ?? "";
-  }, [slotData]);
+  }, [selectedServiceId, slotData]);
+
+  const selectedInsurance = useMemo(() => {
+    return insurances.find((i) => i.id === selectedInsuranceId) ?? null;
+  }, [insurances, selectedInsuranceId]);
+
+  const isDemoInsurance = selectedInsurance?.isDemo ?? false;
+  const isUninsured = selectedInsurance?.slug === "uninsured" || !selectedInsuranceId;
 
   const depositCents = useMemo(() => {
     if (!slotData) return 0;
-    if (slotData.slot.modality === SLOT_MODALITY.VIDEO) {
-      return slotData.clinic.videoDepositCents ?? 0;
+    if (isDemoInsurance) return 0;
+    if (isUninsured) {
+      return slotData.slot.modality === SLOT_MODALITY.VIDEO
+        ? (slotData.clinic.videoDepositCents ?? 0)
+        : (slotData.clinic.inPersonDepositCents ?? 0);
     }
-    return slotData.clinic.inPersonDepositCents ?? 0;
-  }, [slotData]);
+    return 0;
+  }, [slotData, isDemoInsurance, isUninsured]);
+
+  const selfPayCents = useMemo(() => {
+    if (!slotData) return 0;
+    if (isUninsured) return slotData.clinic.selfPayFlatRateCents ?? 0;
+    return 0;
+  }, [slotData, isUninsured]);
+
+  const costLabel = useMemo(() => {
+    if (isDemoInsurance) return "$25 Copay";
+    if (isUninsured) return formatCents(selfPayCents).replace("No payment required", "Self-Pay rates apply");
+    return "Covered by insurance";
+  }, [isDemoInsurance, isUninsured, selfPayCents]);
+
+  const depositLabel = useMemo(() => {
+    if (isDemoInsurance) return "$0 deposit (Demo)";
+    if (depositCents > 0) return `${formatCents(depositCents)} deposit required`;
+    return "No deposit required";
+  }, [isDemoInsurance, depositCents]);
+
+  const paymentMethod = useMemo(() => {
+    if (isDemoInsurance) return "MANUAL_WAIVER" as const;
+    return "CASH_AT_DESK" as const;
+  }, [isDemoInsurance]);
 
   const depositDisplay = useMemo(() => formatCents(depositCents), [depositCents]);
 
-  // ---- Fetch slot data on mount ----
+  const serviceName = useMemo(() => {
+    if (!slotData?.services?.length) return "";
+    const svc = slotData.services.find((s) => s.id === serviceId);
+    return svc?.name ?? slotData.services[0]?.name ?? "";
+  }, [slotData, serviceId]);
+
+  // ---- Fetch slot data & taxonomies on mount ----
   useEffect(() => {
     if (!slotId) {
       setError("No slot ID provided. Please select a time slot from the search page.");
@@ -286,14 +494,49 @@ export default function BookingPage() {
         }
         const data: SlotData = await res.json();
         setSlotData(data);
+        // Set default service
+        if (data.serviceId) {
+          setSelectedServiceId(data.serviceId);
+        } else if (data.services?.[0]?.id) {
+          setSelectedServiceId(data.services[0].id);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load appointment details.");
       } finally {
         setLoading(false);
       }
     }
+
+    async function fetchTaxonomies() {
+      try {
+        const res = await fetch("/api/taxonomies");
+        if (res.ok) {
+          const data = await res.json();
+          setInsurances(data.insurances ?? []);
+          // Auto-select demo insurance if available
+          const demo = (data.insurances ?? []).find((i: Insurance) => i.isDemo);
+          if (demo) {
+            setSelectedInsuranceId(demo.id);
+          }
+        }
+      } catch {
+        // Non-critical, continue without insurances
+      }
+    }
+
     fetchSlot();
+    fetchTaxonomies();
   }, [slotId]);
+
+  // ---- Animate guardian fields ----
+  useEffect(() => {
+    if (patientType === "PEDIATRIC") {
+      const timer = setTimeout(() => setShowGuardian(true), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setShowGuardian(false);
+    }
+  }, [patientType]);
 
   // ---- Validation helpers ----
   const validateStep1 = useCallback((): boolean => {
@@ -381,10 +624,10 @@ export default function BookingPage() {
         serviceId,
         guardianName: patientType === "PEDIATRIC" ? guardianName.trim() : undefined,
         guardianRelation: patientType === "PEDIATRIC" ? guardianRelation : undefined,
-        paymentMethod: "MANUAL_WAIVER" as const,
-        depositCents: 0,
-        selfPayCents: 0,
-        isDemoInsurance: false,
+        paymentMethod,
+        depositCents,
+        selfPayCents,
+        isDemoInsurance,
       };
 
       const apptRes = await fetch("/api/appointments", {
@@ -397,6 +640,7 @@ export default function BookingPage() {
         const apptBody = await apptRes.json().catch(() => ({}));
         // Release lock on failure
         await releaseLock();
+
         if (apptRes.status === 409 && apptBody.code === "SLOT_TAKEN") {
           setStepError("This time slot was just booked by someone else.");
           return;
@@ -428,6 +672,10 @@ export default function BookingPage() {
     reasonForVisit,
     guardianName,
     guardianRelation,
+    paymentMethod,
+    depositCents,
+    selfPayCents,
+    isDemoInsurance,
     releaseLock,
   ]);
 
@@ -450,6 +698,32 @@ export default function BookingPage() {
       setTimeout(() => setCopied(false), 2000);
     }
   }, [rawToken]);
+
+  // ---- Retry on error ----
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    if (!slotId) return;
+
+    async function fetchSlot() {
+      try {
+        const res = await fetch(`/api/slots/${slotId}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? `Failed to load slot (${res.status})`);
+        }
+        const data: SlotData = await res.json();
+        setSlotData(data);
+        if (data.serviceId) setSelectedServiceId(data.serviceId);
+        else if (data.services?.[0]?.id) setSelectedServiceId(data.services[0].id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load appointment details.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSlot();
+  }, [slotId]);
 
   // ---- Provider display name ----
   const providerDisplayName = useMemo(() => {
@@ -477,7 +751,7 @@ export default function BookingPage() {
   // ===========================================================================
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
         <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
           <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2 cursor-pointer">
@@ -492,7 +766,10 @@ export default function BookingPage() {
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center py-20">
-          <Loader2 className="size-8 animate-spin text-emerald-600" />
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="size-8 animate-spin text-emerald-600" />
+            <p className="text-sm text-muted-foreground">Loading appointment details...</p>
+          </div>
         </div>
       </div>
     );
@@ -503,7 +780,7 @@ export default function BookingPage() {
   // ===========================================================================
   if (error || !slotData) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
         <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
           <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2 cursor-pointer">
@@ -518,30 +795,50 @@ export default function BookingPage() {
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center py-20 px-4">
-          <div className="flex flex-col items-center text-center space-y-4 max-w-md">
-            <AlertCircle className="size-10 text-destructive" />
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">Unable to load appointment</p>
-              <p className="text-sm text-muted-foreground">{error || "Slot data not found."}</p>
-            </div>
-            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
-              <Link href="/">
-                <Search className="size-4" />
-                Back to Search
-              </Link>
-            </Button>
-          </div>
+          <Card className="max-w-md w-full border-red-200 bg-red-50/30 shadow-sm">
+            <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+              <div className="size-12 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="size-6 text-red-600" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-semibold text-foreground">Unable to load appointment</p>
+                <p className="text-sm text-muted-foreground">{error || "Slot data not found."}</p>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <Button
+                  onClick={handleRetry}
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                >
+                  <RefreshCw className="size-4" />
+                  Try Again
+                </Button>
+                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                  <Link href="/">
+                    <Search className="size-4" />
+                    Back to Search
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
   // ===========================================================================
-  // Step 4 — Confirmation (separate layout, no progress bar needed)
+  // Step 4 — Confirmation (separate layout)
   // ===========================================================================
   if (step === 4 && appointmentResult) {
+    const confettiColors = [
+      "bg-emerald-400", "bg-emerald-500", "bg-amber-400", "bg-amber-300",
+      "bg-emerald-300", "bg-green-400", "bg-lime-400", "bg-teal-300",
+    ];
+
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+        <ConfettiStyles />
         <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
           <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2 cursor-pointer">
@@ -556,25 +853,72 @@ export default function BookingPage() {
           </div>
         </header>
 
-        <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-10 space-y-6">
-          {/* Success Icon */}
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="size-10 text-emerald-600" />
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-10 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {/* Confetti + Success Icon */}
+          <div className="flex flex-col items-center text-center space-y-5 pt-4">
+            {/* Confetti dots */}
+            <div className="relative size-24 flex items-center justify-center">
+              {confettiColors.map((color, i) => {
+                const angle = (i / confettiColors.length) * 360;
+                const rad = (angle * Math.PI) / 180;
+                const x = Math.cos(rad) * 60;
+                const y = Math.sin(rad) * 60;
+                return (
+                  <div
+                    key={i}
+                    className={`confetti-dot ${color}`}
+                    style={{
+                      left: `calc(50% + ${x}px - 4px)`,
+                      top: `calc(50% + ${y}px - 4px)`,
+                      animationDelay: `${i * 0.05}s`,
+                    }}
+                  />
+                );
+              })}
+
+              {/* Animated checkmark */}
+              <div className="checkmark-circle-anim relative z-10">
+                <svg
+                  className="checkmark-svg size-20"
+                  viewBox="0 0 52 52"
+                >
+                  <circle
+                    cx="26"
+                    cy="26"
+                    r="25"
+                    fill="#059669"
+                    stroke="none"
+                  />
+                  <path
+                    className="checkmark-path"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14 27l7 7 16-16"
+                  />
+                </svg>
+              </div>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Appointment Confirmed!
-            </h1>
-            <p className="text-muted-foreground max-w-md">
-              Your appointment has been booked successfully. Check your email for a confirmation.
-            </p>
+
+            <div className="space-y-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                Appointment Confirmed!
+              </h1>
+              <p className="text-muted-foreground max-w-md text-sm">
+                Your appointment has been booked successfully. We&apos;ve sent a confirmation to your email.
+              </p>
+            </div>
           </div>
 
           {/* Appointment Details Card */}
-          <Card>
-            <CardContent className="p-5 space-y-3">
+          <Card className="shadow-sm border-emerald-200/60">
+            <CardContent className="p-5 space-y-3.5">
               <div className="flex items-start gap-3">
-                <Calendar className="size-4 text-emerald-600 mt-0.5 shrink-0" />
+                <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <Calendar className="size-4 text-emerald-700" />
+                </div>
                 <div>
                   <p className="text-sm font-medium">{formatSlotTime(appointmentResult.startTime)}</p>
                   <div className="mt-1">
@@ -584,7 +928,9 @@ export default function BookingPage() {
               </div>
               <Separator />
               <div className="flex items-start gap-3">
-                <User className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <User className="size-4 text-emerald-700" />
+                </div>
                 <div>
                   <p className="text-sm font-medium">{appointmentResult.providerName}</p>
                   {appointmentResult.providerCredentials && (
@@ -594,82 +940,149 @@ export default function BookingPage() {
               </div>
               <Separator />
               <div className="flex items-start gap-3">
-                <Building2 className="size-4 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-sm text-muted-foreground">{appointmentResult.clinicName}</p>
+                <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <Building2 className="size-4 text-emerald-700" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{appointmentResult.clinicName}</p>
+                  <p className="text-xs text-muted-foreground">{clinicAddress}</p>
+                </div>
               </div>
               <Separator />
               <div className="flex items-start gap-3">
-                <Shield className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <Shield className="size-4 text-emerald-700" />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Patient: <span className="font-medium text-foreground">{maskName(appointmentResult.patientName)}</span>
                 </p>
               </div>
+
+              {/* Cost summary in confirmation */}
+              {selectedInsurance && (
+                <>
+                  <Separator />
+                  <div className="flex items-start gap-3">
+                    <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <CreditCard className="size-4 text-emerald-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {isDemoInsurance ? "Demo Insurance" : selectedInsurance.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{costLabel}</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
           {/* Token Management */}
-          <Card className="border-emerald-200 bg-emerald-50/40">
+          <Card className="border-emerald-200 bg-emerald-50/40 shadow-sm">
             <CardContent className="p-5 space-y-4">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <Shield className="size-4 text-emerald-600" />
                 Manage Your Appointment
               </h3>
               <p className="text-sm text-muted-foreground">
-                Save this link! You&apos;ll need it to view details, complete intake forms, or make changes.
+                Save this secure link! You&apos;ll need it to view details, complete intake forms, or make changes.
               </p>
 
-              <Button
-                variant="outline"
-                onClick={() => setShowToken(!showToken)}
-                className="w-full cursor-pointer justify-center"
-              >
-                {showToken ? (
-                  <>
-                    <EyeOff className="size-4" />
-                    Hide Token Link
-                  </>
-                ) : (
-                  <>
-                    <Eye className="size-4" />
-                    Show Token Link
-                  </>
-                )}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowToken(!showToken)}
+                  className="w-full cursor-pointer justify-center"
+                >
+                  {showToken ? (
+                    <>
+                      <EyeOff className="size-4" />
+                      Hide Token Link
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="size-4" />
+                      Show Token Link
+                    </>
+                  )}
+                </Button>
 
-              {showToken && rawToken && (
-                <div className="rounded-lg border bg-white p-3 space-y-2">
-                  <p className="text-xs text-muted-foreground break-all font-mono">
-                    {window.location.origin}/manage/{rawToken}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyToken}
-                    className="w-full cursor-pointer"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="size-3.5" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3.5" />
-                        Copy Link
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
+                {showToken && rawToken && (
+                  <div className="rounded-lg border bg-white p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <p className="text-xs text-muted-foreground break-all font-mono">
+                      {window.location.origin}/manage/{rawToken}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyToken}
+                      className="w-full cursor-pointer"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="size-3.5" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3.5" />
+                          Copy Link
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Back to Search */}
-          <div className="flex justify-center pt-2">
-            <Button asChild variant="outline" className="cursor-pointer">
+          {/* What's Next */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-foreground px-1">What&apos;s Next?</h3>
+            <div className="grid gap-3">
+              <Card className="shadow-sm">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <Mail className="size-4 text-emerald-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Confirmation Email</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">You&apos;ll receive a confirmation email shortly with all the details.</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <FileText className="size-4 text-emerald-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Complete Intake Forms</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Complete your intake forms before the visit to save time.</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <Timer className="size-4 text-emerald-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Arrive Early</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Arrive 15 minutes early for check-in and any paperwork.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Book Another */}
+          <div className="flex justify-center pt-2 pb-4">
+            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
               <Link href="/">
                 <Search className="size-4" />
-                Back to Search
+                Book Another Appointment
               </Link>
             </Button>
           </div>
@@ -682,7 +1095,7 @@ export default function BookingPage() {
   // Steps 1-3 — Wizard with Progress Bar
   // ===========================================================================
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
       {/* ===== Sticky Header ===== */}
       <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -698,8 +1111,13 @@ export default function BookingPage() {
         </div>
       </header>
 
+      {/* ===== Slot Summary Card (visible on all steps) ===== */}
+      <div className="max-w-2xl mx-auto w-full px-4 pt-4">
+        <SlotSummaryCard slotData={slotData} />
+      </div>
+
       {/* ===== Progress Indicator ===== */}
-      <div className="bg-white border-b">
+      <div className="bg-white/80 border-b">
         <ProgressIndicator currentStep={step} />
       </div>
 
@@ -707,7 +1125,7 @@ export default function BookingPage() {
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
         {/* ---- Step 1: Visit Details ---- */}
         {step === 1 && (
-          <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-1 duration-300">
             <div>
               <h1 className="text-2xl font-bold text-foreground">What brings you in?</h1>
               <p className="text-muted-foreground mt-1 text-sm">
@@ -715,7 +1133,7 @@ export default function BookingPage() {
               </p>
             </div>
 
-            <Card>
+            <Card className="shadow-sm">
               <CardContent className="p-5 space-y-5">
                 {/* Reason for Visit */}
                 <div className="space-y-2">
@@ -765,9 +1183,15 @@ export default function BookingPage() {
                   </ToggleGroup>
                 </div>
 
-                {/* Guardian Fields (Pediatric) */}
-                {patientType === "PEDIATRIC" && (
-                  <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Guardian Fields (Pediatric) — Smooth expand */}
+                <div
+                  className="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
+                  style={{
+                    maxHeight: showGuardian ? "400px" : "0px",
+                    opacity: showGuardian ? 1 : 0,
+                  }}
+                >
+                  <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4 -mt-1">
                     <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
                       <Shield className="size-4" />
                       Guardian Information Required
@@ -820,7 +1244,136 @@ export default function BookingPage() {
                       </Label>
                     </div>
                   </div>
+                </div>
+
+                <Separator />
+
+                {/* Insurance Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="insurance" className="text-sm font-medium">
+                    Insurance
+                  </Label>
+                  <Select
+                    value={selectedInsuranceId}
+                    onValueChange={setSelectedInsuranceId}
+                  >
+                    <SelectTrigger id="insurance" className="cursor-pointer">
+                      <SelectValue placeholder="Select insurance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {insurances.map((ins) => (
+                        <SelectItem key={ins.id} value={ins.id} className="cursor-pointer">
+                          {ins.name}
+                          {ins.isDemo && (
+                            <Badge variant="outline" className="ml-2 text-emerald-600 border-emerald-300 text-[10px] px-1.5 py-0">
+                              Demo
+                            </Badge>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Insurance Badge */}
+                  {selectedInsurance && (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                      {selectedInsurance.isDemo ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-default">
+                          <CheckCircle2 className="size-3 mr-1" />
+                          $0 Copay — Demo Plan
+                        </Badge>
+                      ) : selectedInsurance.slug === "uninsured" ? (
+                        <Badge variant="outline" className="text-amber-700 border-amber-300 cursor-default">
+                          <DollarSign className="size-3 mr-1" />
+                          Self-pay rates apply
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="cursor-default">
+                          <Shield className="size-3 mr-1" />
+                          {selectedInsurance.name}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Service Selection */}
+                {slotData.services && slotData.services.length > 1 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <Label htmlFor="service" className="text-sm font-medium">
+                        Service
+                      </Label>
+                      <Select
+                        value={serviceId}
+                        onValueChange={setSelectedServiceId}
+                      >
+                        <SelectTrigger id="service" className="cursor-pointer">
+                          <SelectValue placeholder="Select service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {slotData.services.map((svc) => (
+                            <SelectItem key={svc.id} value={svc.id} className="cursor-pointer">
+                              {svc.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Payment Summary Preview */}
+            <Card className="shadow-sm border-emerald-200/60 bg-emerald-50/30">
+              <CardContent className="p-4">
+                <h3 className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <CreditCard className="size-3.5" />
+                  Payment Summary
+                </h3>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {slotData.slot.modality === SLOT_MODALITY.VIDEO ? (
+                        <Video className="size-3.5" />
+                      ) : (
+                        <MonitorCheck className="size-3.5" />
+                      )}
+                      Visit Type
+                    </div>
+                    <span className="text-sm font-medium text-foreground">
+                      {slotData.slot.modality === SLOT_MODALITY.VIDEO ? "Video" : "In-Clinic"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Shield className="size-3.5" />
+                      Insurance
+                    </div>
+                    <span className="text-sm font-medium text-foreground">
+                      {isUninsured ? "Self-Pay" : selectedInsurance?.name ?? "None selected"}
+                    </span>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Estimated Cost</span>
+                    <span className={`text-sm font-semibold ${isDemoInsurance ? "text-emerald-700" : isUninsured ? "text-amber-700" : "text-foreground"}`}>
+                      {isDemoInsurance ? "Free" : isUninsured ? formatCents(selfPayCents) : costLabel}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Deposit</span>
+                    <span className={`text-sm font-semibold ${isDemoInsurance ? "text-emerald-700" : depositCents > 0 ? "text-amber-700" : "text-foreground"}`}>
+                      {isDemoInsurance ? "$0 deposit (Demo)" : depositCents > 0 ? `${formatCents(depositCents)} deposit required` : "No deposit required"}
+                    </span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -828,7 +1381,7 @@ export default function BookingPage() {
 
         {/* ---- Step 2: Your Information ---- */}
         {step === 2 && (
-          <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-1 duration-300">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Your Information</h1>
               <p className="text-muted-foreground mt-1 text-sm">
@@ -836,7 +1389,7 @@ export default function BookingPage() {
               </p>
             </div>
 
-            <Card>
+            <Card className="shadow-sm">
               <CardContent className="p-5 space-y-4">
                 {/* Patient Name */}
                 <div className="space-y-2">
@@ -902,7 +1455,7 @@ export default function BookingPage() {
 
         {/* ---- Step 3: Review & Confirm ---- */}
         {step === 3 && (
-          <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-1 duration-300">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Review & Confirm</h1>
               <p className="text-muted-foreground mt-1 text-sm">
@@ -911,11 +1464,13 @@ export default function BookingPage() {
             </div>
 
             {/* Appointment Summary Card */}
-            <Card>
-              <CardContent className="p-5 space-y-3">
+            <Card className="shadow-sm">
+              <CardContent className="p-5 space-y-3.5">
                 {/* Provider */}
                 <div className="flex items-start gap-3">
-                  <User className="size-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <User className="size-4 text-emerald-700" />
+                  </div>
                   <div>
                     <p className="text-sm font-medium">{providerDisplayName}</p>
                     {slotData.specialty && (
@@ -928,7 +1483,9 @@ export default function BookingPage() {
 
                 {/* Clinic */}
                 <div className="flex items-start gap-3">
-                  <Building2 className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <Building2 className="size-4 text-emerald-700" />
+                  </div>
                   <div>
                     <p className="text-sm font-medium">{slotData.clinic.name}</p>
                     <p className="text-xs text-muted-foreground">{clinicAddress}</p>
@@ -939,7 +1496,9 @@ export default function BookingPage() {
 
                 {/* Date / Time / Modality */}
                 <div className="flex items-start gap-3">
-                  <Calendar className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <Calendar className="size-4 text-emerald-700" />
+                  </div>
                   <div className="space-y-1">
                     <p className="text-sm">{formatSlotTime(slotData.slot.startTime)}</p>
                     <ModalityBadge modality={slotData.slot.modality} />
@@ -950,11 +1509,13 @@ export default function BookingPage() {
 
                 {/* Patient Type */}
                 <div className="flex items-center gap-3">
-                  {patientType === "PEDIATRIC" ? (
-                    <Baby className="size-4 text-muted-foreground shrink-0" />
-                  ) : (
-                    <User className="size-4 text-muted-foreground shrink-0" />
-                  )}
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    {patientType === "PEDIATRIC" ? (
+                      <Baby className="size-4 text-emerald-700" />
+                    ) : (
+                      <User className="size-4 text-emerald-700" />
+                    )}
+                  </div>
                   <p className="text-sm">
                     <span className="text-muted-foreground">Patient Type:</span>{" "}
                     <span className="font-medium">
@@ -965,21 +1526,21 @@ export default function BookingPage() {
 
                 {/* Guardian info (pediatric) */}
                 {patientType === "PEDIATRIC" && (
-                  <>
-                    <div className="flex items-center gap-3 pl-7">
-                      <Shield className="size-4 text-muted-foreground shrink-0" />
-                      <p className="text-sm text-muted-foreground">
-                        Guardian: <span className="font-medium text-foreground">{guardianName}</span> ({guardianRelation})
-                      </p>
-                    </div>
-                  </>
+                  <div className="flex items-center gap-3 pl-11">
+                    <Shield className="size-4 text-muted-foreground shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      Guardian: <span className="font-medium text-foreground">{guardianName}</span> ({guardianRelation})
+                    </p>
+                  </div>
                 )}
 
                 <Separator />
 
                 {/* Reason */}
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertCircle className="size-4 text-emerald-700" />
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">Reason:</span>{" "}
                     {reasonForVisit.length > 120
@@ -992,28 +1553,79 @@ export default function BookingPage() {
 
                 {/* Patient Name (masked) */}
                 <div className="flex items-center gap-3">
-                  <Shield className="size-4 text-muted-foreground shrink-0" />
+                  <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <Shield className="size-4 text-emerald-700" />
+                  </div>
                   <p className="text-sm">
                     <span className="text-muted-foreground">Patient:</span>{" "}
                     <span className="font-medium">{maskName(patientName)}</span>
                   </p>
                 </div>
+              </CardContent>
+            </Card>
 
-                <Separator />
+            {/* Cost Breakdown Card */}
+            <Card className="shadow-sm border-emerald-200/60 bg-emerald-50/30">
+              <CardContent className="p-5 space-y-3">
+                <h3 className="text-xs font-semibold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <CreditCard className="size-3.5" />
+                  Cost Breakdown
+                </h3>
 
-                {/* Cost */}
-                <div className="flex items-center gap-3">
-                  <Clock className="size-4 text-muted-foreground shrink-0" />
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Cost:</span>{" "}
-                    <span className="font-medium">{depositDisplay}</span>
-                  </p>
+                <div className="space-y-2.5">
+                  {/* Service / Visit Type */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {slotData.slot.modality === SLOT_MODALITY.VIDEO ? (
+                        <Video className="size-3.5" />
+                      ) : (
+                        <MonitorCheck className="size-3.5" />
+                      )}
+                      {serviceName ? `${serviceName} — ` : ""}{slotData.slot.modality === SLOT_MODALITY.VIDEO ? "Video Visit" : "In-Clinic Visit"}
+                    </div>
+                    <ModalityBadge modality={slotData.slot.modality} />
+                  </div>
+
+                  {/* Insurance / Payment */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Shield className="size-3.5" />
+                      {isUninsured ? "Self-Pay" : "Insurance"}
+                    </div>
+                    <span className="text-sm font-medium">
+                      {isUninsured ? "Self-Pay rates" : selectedInsurance?.name ?? "None"}
+                    </span>
+                  </div>
+
+                  {/* Copay / Self-pay rate */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <DollarSign className="size-3.5" />
+                      {isUninsured ? "Self-Pay Rate" : "Copay"}
+                    </div>
+                    <span className={`text-sm font-semibold ${isDemoInsurance ? "text-emerald-700" : isUninsured ? "text-amber-700" : "text-foreground"}`}>
+                      {isDemoInsurance ? "$25 Copay" : isUninsured ? formatCents(selfPayCents) : "Covered"}
+                    </span>
+                  </div>
+
+                  <Separator />
+
+                  {/* Deposit */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CreditCard className="size-3.5" />
+                      Deposit
+                    </div>
+                    <span className={`text-sm font-semibold ${isDemoInsurance ? "text-emerald-700" : depositCents > 0 ? "text-amber-700" : "text-foreground"}`}>
+                      {isDemoInsurance ? "$0 deposit (Demo)" : depositCents > 0 ? `${formatCents(depositCents)} deposit required` : "No deposit required"}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Agreement */}
-            <Card>
+            <Card className="shadow-sm">
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start gap-2.5">
                   <Checkbox
@@ -1041,32 +1653,48 @@ export default function BookingPage() {
 
             {/* Step Error */}
             {stepError && (
-              <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-                <AlertCircle className="size-4 shrink-0" />
-                <div className="flex-1">
-                  <p>{stepError}</p>
-                  {stepError.includes("booked by someone else") && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer"
-                    >
-                      <Link href="/">
-                        <Search className="size-3.5" />
-                        Search for Another Time
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <Card className="border-red-200 bg-red-50/50 shadow-sm">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="size-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <AlertCircle className="size-4 text-red-600" />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-sm text-red-700 font-medium">{stepError}</p>
+                    {stepError.includes("booked by someone else") && (
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                      >
+                        <Link href="/">
+                          <Search className="size-3.5" />
+                          Search for Another Time
+                        </Link>
+                      </Button>
+                    )}
+                    {!stepError.includes("booked by someone else") && !stepError.includes("agree to the") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConfirm}
+                        disabled={isSubmitting}
+                        className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                      >
+                        <RefreshCw className="size-3.5" />
+                        Try Again
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Confirm Button */}
             <Button
               onClick={handleConfirm}
               disabled={isSubmitting || !agreed}
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold cursor-pointer"
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold cursor-pointer shadow-md shadow-emerald-200"
             >
               {isSubmitting ? (
                 <>
@@ -1086,7 +1714,7 @@ export default function BookingPage() {
 
       {/* ===== Navigation Footer (Steps 1-3 only) ===== */}
       {step >= 1 && step <= 3 && (
-        <div className="border-t bg-white sticky bottom-0">
+        <div className="border-t bg-white/90 backdrop-blur-sm sticky bottom-0 mt-auto">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
             <Button
               variant="outline"
@@ -1105,7 +1733,7 @@ export default function BookingPage() {
                   (step === 1 && !validateStep1()) ||
                   (step === 2 && !validateStep2())
                 }
-                className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-sm"
               >
                 Continue
                 <ArrowRight className="size-4" />

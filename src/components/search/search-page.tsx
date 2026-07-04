@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   Search,
   MapPin,
@@ -13,9 +14,9 @@ import {
   AlertCircle,
   Loader2,
   X,
-  Phone,
   LocateFixed,
-  LocateOff,
+  Cross,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -189,6 +190,23 @@ export function SearchPage() {
   }, []);
 
   // ---------------------------------------------------------------------------
+  // Request Geolocation Manually
+  // ---------------------------------------------------------------------------
+  const requestGeoLocation = useCallback(() => {
+    if (!navigator?.geolocation) return;
+    setGeoStatus("requesting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+        setGeoStatus("granted");
+      },
+      () => setGeoStatus("denied"),
+      { timeout: 8000 }
+    );
+  }, []);
+
+  // ---------------------------------------------------------------------------
   // Build search params from current state + optional overrides
   // ---------------------------------------------------------------------------
   const getSearchParams = useCallback(
@@ -273,6 +291,26 @@ export function SearchPage() {
   }, [loadingMore, cursor, getSearchParams]);
 
   // ---------------------------------------------------------------------------
+  // Clear All Filters
+  // ---------------------------------------------------------------------------
+  const clearFilters = useCallback(() => {
+    setQuery("");
+    setSpecialtyId(null);
+    setPatientType("ADULT");
+    setInsuranceId("");
+    setModality("");
+    setRadius(5);
+    setSort("distance");
+    setResults([]);
+    setSearched(false);
+    setInitialLoad(true);
+    setError(null);
+    setTotal(0);
+    setHasMore(false);
+    setCursor(0);
+  }, []);
+
+  // ---------------------------------------------------------------------------
   // Form Submit
   // ---------------------------------------------------------------------------
   const onFormSubmit = (e: React.FormEvent) => {
@@ -301,6 +339,13 @@ export function SearchPage() {
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+  const activeFilterCount = [
+    query,
+    insuranceId,
+    modality,
+    patientType !== "ADULT" ? patientType : null,
+  ].filter(Boolean).length;
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* ===== Sticky Header ===== */}
@@ -319,8 +364,39 @@ export function SearchPage() {
       </header>
 
       {/* ===== Hero Section ===== */}
-      <section className="bg-gradient-to-br from-emerald-50 via-white to-teal-50/30 pb-8 pt-12 md:pt-16">
-        <div className="max-w-4xl mx-auto px-4 text-center space-y-6">
+      <section className="relative bg-gradient-to-br from-emerald-50 via-white to-teal-50/30 pb-8 pt-12 md:pt-16 overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          {/* Large gradient blob — top right */}
+          <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-emerald-100/40 blur-3xl animate-float-slow" />
+          {/* Small circle — bottom left */}
+          <div className="absolute bottom-0 -left-10 w-48 h-48 rounded-full bg-teal-100/30 blur-2xl" style={{ animation: "float-slow 8s ease-in-out infinite reverse" }} />
+          {/* Tiny dot accents */}
+          <div className="absolute top-12 left-[15%] w-2 h-2 rounded-full bg-emerald-300/40" />
+          <div className="absolute top-24 right-[20%] w-1.5 h-1.5 rounded-full bg-emerald-400/30" />
+          <div className="absolute bottom-16 left-[30%] w-1 h-1 rounded-full bg-teal-400/40" />
+          {/* Heartbeat line */}
+          <svg
+            className="absolute bottom-4 left-0 w-full h-6 text-emerald-200/50"
+            viewBox="0 0 1200 24"
+            preserveAspectRatio="none"
+            fill="none"
+          >
+            <path
+              d="M0 12 L200 12 L220 12 L240 4 L260 20 L280 2 L300 22 L320 12 L340 12 L500 12 L520 12 L540 4 L560 20 L580 2 L600 22 L620 12 L640 12 L800 12 L820 12 L840 4 L860 20 L880 2 L900 22 L920 12 L940 12 L1200 12"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          {/* Medical cross icon — decorative */}
+          <div className="absolute top-8 right-[10%] opacity-[0.07]">
+            <Cross className="size-16 text-emerald-700 animate-heartbeat" />
+          </div>
+        </div>
+
+        <div className="relative max-w-4xl mx-auto px-4 text-center space-y-6">
           <div className="space-y-3">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
               Find Your Doctor
@@ -329,197 +405,244 @@ export function SearchPage() {
               Search for local providers, compare availability, and book an
               appointment in minutes.
             </p>
+            {/* Trust Indicators */}
+            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 pt-2">
+              <span className="inline-flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground">
+                <CheckCircle2 className="size-3.5 text-emerald-500" />
+                Trusted by 10,000+ patients
+              </span>
+              <span className="text-muted-foreground/30">·</span>
+              <span className="inline-flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground">
+                <Stethoscope className="size-3.5 text-emerald-500" />
+                50+ providers
+              </span>
+              <span className="text-muted-foreground/30">·</span>
+              <span className="inline-flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground">
+                4.7★ average rating
+              </span>
+            </div>
           </div>
 
-          {/* ===== Search Form ===== */}
-          <form onSubmit={onFormSubmit} className="space-y-4 text-left">
-            {/* Row 1: Search Input */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
-              <Input
-                type="text"
-                placeholder="Search by doctor name, clinic, or condition..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="h-12 pl-10 pr-10 text-base bg-white w-full"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  <X className="size-4" />
-                </button>
-              )}
-            </div>
+          {/* ===== Search Form — Card Wrapper ===== */}
+          <form onSubmit={onFormSubmit} className="text-left">
+            <div className="rounded-2xl border bg-white/80 backdrop-blur-sm shadow-lg shadow-emerald-900/5 p-4 md:p-6 space-y-4">
+              {/* Row 1: Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Search by doctor name, clinic, or condition..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="h-12 pl-10 pr-10 text-base bg-white w-full"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    <X className="size-4" />
+                  </button>
+                )}
+              </div>
 
-            {/* Row 2: Filters Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Specialty Select (MANDATORY) */}
-              <Select
-                value={specialtyId ?? undefined}
-                onValueChange={(val) => setSpecialtyId(val)}
-              >
-                <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
-                  <SelectValue placeholder="Select specialty *" />
-                </SelectTrigger>
-                <SelectContent>
-                  {specialties.map((s) => (
-                    <SelectItem
-                      key={s.id}
-                      value={s.id}
-                      className="cursor-pointer"
+              {/* Row 2: Filters Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Specialty Select (MANDATORY) */}
+                <div className="relative">
+                  <Select
+                    value={specialtyId ?? undefined}
+                    onValueChange={(val) => setSpecialtyId(val)}
+                  >
+                    <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
+                      <SelectValue placeholder="Select specialty *" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {specialties.map((s) => (
+                        <SelectItem
+                          key={s.id}
+                          value={s.id}
+                          className="cursor-pointer"
+                        >
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* Checkmark indicator when specialty is selected */}
+                  {specialtyId && (
+                    <div className="absolute -top-1.5 -right-1.5 z-10 animate-in fade-in-0 zoom-in-95">
+                      <div className="bg-emerald-500 rounded-full p-0.5">
+                        <CheckCircle2 className="size-3 text-white" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Patient Type Toggle (MANDATORY) */}
+                <div className="flex items-center">
+                  <ToggleGroup
+                    type="single"
+                    value={patientType}
+                    onValueChange={(val) => {
+                      if (val) setPatientType(val as "ADULT" | "PEDIATRIC");
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <ToggleGroupItem
+                      value="ADULT"
+                      className="flex-1 gap-1.5 cursor-pointer"
                     >
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      <User className="size-3.5" />
+                      <span className="text-xs sm:text-sm">Adult</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="PEDIATRIC"
+                      className="flex-1 gap-1.5 cursor-pointer"
+                    >
+                      <Baby className="size-3.5" />
+                      <span className="text-xs sm:text-sm">Pediatric</span>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
 
-              {/* Patient Type Toggle (MANDATORY) */}
-              <div className="flex items-center">
+                {/* Insurance Select (optional) */}
+                <Select
+                  value={insuranceId || undefined}
+                  onValueChange={(val) =>
+                    setInsuranceId(val === "__none__" ? "" : val)
+                  }
+                >
+                  <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
+                    <SelectValue placeholder="Any Insurance" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__" className="cursor-pointer">
+                      Uninsured
+                    </SelectItem>
+                    {insurances.map((ins) => (
+                      <SelectItem
+                        key={ins.id}
+                        value={ins.id}
+                        className="cursor-pointer"
+                      >
+                        {ins.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Modality Select (optional) */}
+                <Select
+                  value={modality || undefined}
+                  onValueChange={(val) =>
+                    setModality(val as "IN_PERSON" | "VIDEO")
+                  }
+                >
+                  <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
+                    <SelectValue placeholder="Any Visit Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IN_PERSON" className="cursor-pointer">
+                      In-Person
+                    </SelectItem>
+                    <SelectItem value="VIDEO" className="cursor-pointer">
+                      Video
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Row 3: Radius Slider + Sort */}
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Radius Slider */}
+                <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                  {geoStatus === "granted" ? (
+                    <LocateFixed className="size-4 text-emerald-600 shrink-0" title="Location detected" />
+                  ) : (
+                    <MapPin className="size-4 text-muted-foreground shrink-0" title="Allow location for distance sorting" />
+                  )}
+                  <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[45px]">
+                    {radius} mi
+                  </span>
+                  <Slider
+                    value={[radius]}
+                    onValueChange={([val]) => setRadius(val)}
+                    min={1}
+                    max={50}
+                    step={1}
+                    className="flex-1 cursor-pointer"
+                  />
+                </div>
+
+                {/* Use My Location button (when geo not granted) */}
+                {geoStatus !== "granted" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={requestGeoLocation}
+                    disabled={geoStatus === "requesting"}
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer shrink-0"
+                  >
+                    {geoStatus === "requesting" ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <LocateFixed className="size-3.5" />
+                    )}
+                    <span className="text-xs sm:text-sm ml-1.5">Use my location</span>
+                  </Button>
+                )}
+
+                {/* Sort Toggle */}
                 <ToggleGroup
                   type="single"
-                  value={patientType}
+                  value={sort}
                   onValueChange={(val) => {
-                    if (val) setPatientType(val as "ADULT" | "PEDIATRIC");
+                    if (val) setSort(val as "distance" | "time");
                   }}
                   variant="outline"
-                  className="w-full"
+                  className="cursor-pointer"
                 >
                   <ToggleGroupItem
-                    value="ADULT"
-                    className="flex-1 gap-1.5 cursor-pointer"
+                    value="distance"
+                    className="gap-1.5 cursor-pointer"
                   >
-                    <User className="size-3.5" />
-                    <span className="text-xs sm:text-sm">Adult</span>
+                    <Navigation className="size-3.5" />
+                    <span className="text-xs sm:text-sm">Nearest</span>
                   </ToggleGroupItem>
                   <ToggleGroupItem
-                    value="PEDIATRIC"
-                    className="flex-1 gap-1.5 cursor-pointer"
+                    value="time"
+                    className="gap-1.5 cursor-pointer"
                   >
-                    <Baby className="size-3.5" />
-                    <span className="text-xs sm:text-sm">Pediatric</span>
+                    <Clock className="size-3.5" />
+                    <span className="text-xs sm:text-sm">Earliest</span>
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
 
-              {/* Insurance Select (optional) */}
-              <Select
-                value={insuranceId || undefined}
-                onValueChange={(val) =>
-                  setInsuranceId(val === "__none__" ? "" : val)
-                }
-              >
-                <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
-                  <SelectValue placeholder="Any Insurance" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__" className="cursor-pointer">
-                    Uninsured
-                  </SelectItem>
-                  {insurances.map((ins) => (
-                    <SelectItem
-                      key={ins.id}
-                      value={ins.id}
-                      className="cursor-pointer"
-                    >
-                      {ins.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Modality Select (optional) */}
-              <Select
-                value={modality || undefined}
-                onValueChange={(val) =>
-                  setModality(val as "IN_PERSON" | "VIDEO")
-                }
-              >
-                <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
-                  <SelectValue placeholder="Any Visit Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IN_PERSON" className="cursor-pointer">
-                    In-Person
-                  </SelectItem>
-                  <SelectItem value="VIDEO" className="cursor-pointer">
-                    Video
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Row 3: Radius Slider + Sort */}
-            <div className="flex items-center gap-4 flex-wrap">
-              {/* Radius Slider */}
-              <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-                {geoStatus === "granted" ? (
-                  <LocateFixed className="size-4 text-emerald-600 shrink-0" title="Location detected" />
-                ) : (
-                  <MapPin className="size-4 text-muted-foreground shrink-0" title="Allow location for distance sorting" />
+              {/* Row 4: Search Button */}
+              <div className="flex flex-col items-center gap-1.5">
+                <Button
+                  type="submit"
+                  disabled={!specialtyId || loading}
+                  className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-base font-medium shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/25 transition-all"
+                >
+                  {loading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Search className="size-4" />
+                  )}
+                  Search Providers
+                </Button>
+                {!specialtyId && (
+                  <span className="text-xs text-muted-foreground">
+                    Please select a specialty to search
+                  </span>
                 )}
-                <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[45px]">
-                  {radius} mi
-                </span>
-                <Slider
-                  value={[radius]}
-                  onValueChange={([val]) => setRadius(val)}
-                  min={1}
-                  max={50}
-                  step={1}
-                  className="flex-1 cursor-pointer"
-                />
               </div>
-
-              {/* Sort Toggle */}
-              <ToggleGroup
-                type="single"
-                value={sort}
-                onValueChange={(val) => {
-                  if (val) setSort(val as "distance" | "time");
-                }}
-                variant="outline"
-                className="cursor-pointer"
-              >
-                <ToggleGroupItem
-                  value="distance"
-                  className="gap-1.5 cursor-pointer"
-                >
-                  <Navigation className="size-3.5" />
-                  <span className="text-xs sm:text-sm">Nearest</span>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="time"
-                  className="gap-1.5 cursor-pointer"
-                >
-                  <Clock className="size-3.5" />
-                  <span className="text-xs sm:text-sm">Earliest</span>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-
-            {/* Row 4: Search Button */}
-            <div className="flex flex-col items-center gap-1.5">
-              <Button
-                type="submit"
-                disabled={!specialtyId || loading}
-                className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-base font-medium"
-              >
-                {loading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Search className="size-4" />
-                )}
-                Search Providers
-              </Button>
-              {!specialtyId && (
-                <span className="text-xs text-muted-foreground">
-                  Please select a specialty to search
-                </span>
-              )}
             </div>
           </form>
         </div>
@@ -530,37 +653,51 @@ export function SearchPage() {
         {/* Initial Load — No search yet */}
         {initialLoad && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Stethoscope className="size-12 text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground text-sm">
-              Select a specialty and search to find providers
+            {/* Medical-themed CSS illustration */}
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 rounded-full bg-emerald-100/60" />
+              <div className="absolute inset-2 rounded-full bg-emerald-100/80" />
+              <div className="absolute inset-4 rounded-full bg-emerald-200/50" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Stethoscope className="size-10 text-emerald-500/60" />
+              </div>
+              {/* Pulse ring */}
+              <div className="absolute inset-0 rounded-full border-2 border-emerald-300/30 animate-ping" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">
+              Ready to find your provider?
+            </h2>
+            <p className="text-muted-foreground text-sm max-w-sm">
+              Select a specialty above and hit search. We&apos;ll show you available
+              doctors near you with open appointment slots.
             </p>
           </div>
         )}
 
-        {/* Loading Skeletons */}
+        {/* Loading Skeletons — Shimmer with emerald tint */}
         {loading && (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl border p-4 space-y-3 bg-card"
+                className="rounded-xl border p-4 space-y-3 bg-card overflow-hidden"
               >
                 <div className="flex gap-4">
-                  <Skeleton className="size-16 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-4 w-36" />
-                    <Skeleton className="h-4 w-64" />
-                    <Skeleton className="h-4 w-24" />
+                  <div className="skeleton-shimmer size-16 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2.5">
+                    <div className="skeleton-shimmer h-5 w-48 rounded-md" />
+                    <div className="skeleton-shimmer h-4 w-36 rounded-md" />
+                    <div className="skeleton-shimmer h-4 w-64 rounded-md" />
+                    <div className="skeleton-shimmer h-4 w-24 rounded-md" />
                   </div>
                 </div>
-                <Skeleton className="h-px w-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-28" />
+                <div className="skeleton-shimmer h-px w-full" />
+                <div className="space-y-2.5">
+                  <div className="skeleton-shimmer h-4 w-28 rounded-md" />
                   <div className="flex gap-2">
-                    <Skeleton className="h-14 w-44 rounded-lg" />
-                    <Skeleton className="h-14 w-44 rounded-lg" />
-                    <Skeleton className="h-14 w-44 rounded-lg" />
+                    <div className="skeleton-shimmer h-14 w-44 rounded-lg border-l-4 border-l-emerald-300" />
+                    <div className="skeleton-shimmer h-14 w-44 rounded-lg border-l-4 border-l-emerald-300" />
+                    <div className="skeleton-shimmer h-14 w-44 rounded-lg border-l-4 border-l-emerald-300" />
                   </div>
                 </div>
               </div>
@@ -571,12 +708,16 @@ export function SearchPage() {
         {/* Error State */}
         {!loading && error && searched && (
           <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-            <AlertCircle className="size-10 text-destructive" />
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
+                <AlertCircle className="size-8 text-destructive" />
+              </div>
+            </div>
             <div className="space-y-1">
               <p className="font-medium text-foreground">
                 Something went wrong
               </p>
-              <p className="text-sm text-muted-foreground">{error}</p>
+              <p className="text-sm text-muted-foreground max-w-md">{error}</p>
             </div>
             <Button
               variant="outline"
@@ -588,13 +729,28 @@ export function SearchPage() {
           </div>
         )}
 
-        {/* No Results + Smart Suggestions */}
+        {/* No Results + Smart Suggestions — Medical-themed */}
         {!loading && !error && searched && results.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-            <Search className="size-10 text-muted-foreground/30" />
-            <p className="text-muted-foreground">
-              No providers found matching your criteria
-            </p>
+          <div className="flex flex-col items-center justify-center py-16 text-center space-y-5">
+            {/* Medical-themed CSS illustration */}
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 rounded-full bg-emerald-50" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Search className="size-8 text-emerald-400/60" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border shadow-sm flex items-center justify-center">
+                <X className="size-3.5 text-muted-foreground" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">
+                No providers found
+              </p>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                We couldn&apos;t find any providers matching your current filters.
+                Try adjusting your search criteria below.
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {radius < 25 && (
                 <Button
@@ -634,13 +790,49 @@ export function SearchPage() {
         {/* Results List */}
         {!loading && !error && searched && results.length > 0 && (
           <>
-            <p className="text-sm text-muted-foreground">
-              {total} {total === 1 ? "provider" : "providers"} found
-            </p>
+            {/* Results Header */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <Badge
+                  variant="secondary"
+                  className="bg-emerald-100 text-emerald-700 font-semibold tabular-nums shrink-0"
+                >
+                  {total}
+                </Badge>
+                <span className="text-sm text-muted-foreground truncate">
+                  {query.trim()
+                    ? (
+                      <>
+                        Results for <strong className="text-foreground font-medium">&ldquo;{query.trim()}&rdquo;</strong>
+                      </>
+                    )
+                    : (
+                      <>
+                        {total === 1 ? "provider" : "providers"} found
+                      </>
+                    )
+                  }
+                </span>
+              </div>
+              {activeFilterCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                >
+                  <X className="size-3.5" />
+                  <span className="hidden sm:inline ml-1">Clear filters</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Subtle divider */}
+            <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
             <div className="space-y-4">
-              {results.map((provider) => (
-                <ProviderCard key={provider.id} provider={provider} />
+              {results.map((provider, idx) => (
+                <ProviderCard key={provider.id} provider={provider} index={idx} />
               ))}
             </div>
 
@@ -661,6 +853,20 @@ export function SearchPage() {
           </>
         )}
       </main>
+
+      {/* ===== Sticky Footer ===== */}
+      <footer className="mt-auto border-t bg-white/80 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>© 2026 ClinicBook. All rights reserved.</span>
+          <nav className="flex items-center gap-3">
+            <Link href="/" className="hover:text-foreground transition-colors cursor-pointer">Home</Link>
+            <span className="text-muted-foreground/30">|</span>
+            <Link href="#" className="hover:text-foreground transition-colors cursor-pointer">Privacy Policy</Link>
+            <span className="text-muted-foreground/30">|</span>
+            <Link href="#" className="hover:text-foreground transition-colors cursor-pointer">Terms of Service</Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }

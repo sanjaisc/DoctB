@@ -1,12 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { format } from "date-fns";
 import {
   Star,
   MapPin,
   Building2,
   Quote,
+  Phone,
+  Calendar,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -46,6 +50,7 @@ interface ProviderCardProps {
     reviewSnippet: string | null;
     costBadge: string | null;
   };
+  index?: number;
   onSlotClick?: (providerId: string, slotId: string) => void;
 }
 
@@ -86,7 +91,7 @@ function ModalityBadge({ modality }: { modality: string }) {
   );
 }
 
-export function ProviderCard({ provider, onSlotClick }: ProviderCardProps) {
+export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardProps) {
   const router = useRouter();
 
   const initials = `${provider.firstName.charAt(0)}${provider.lastName.charAt(0)}`;
@@ -112,13 +117,18 @@ export function ProviderCard({ provider, onSlotClick }: ProviderCardProps) {
     }
   };
 
+  const staggerDelay = Math.min(index * 80, 400);
+
   return (
-    <Card className="w-full max-w-3xl mx-auto transition-all duration-200 hover:shadow-md py-0 gap-0">
+    <Card
+      className={`w-full max-w-3xl mx-auto transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:border-l-4 hover:border-l-emerald-400 hover:bg-emerald-50/30 py-0 gap-0 animate-in fade-in-0 slide-in-from-bottom-2`}
+      style={{ animationDelay: `${staggerDelay}ms`, animationFillMode: "both" }}
+    >
       <CardContent className="p-4 space-y-3">
         {/* Top row: Avatar + Info + Cost Badge */}
         <div className="flex gap-4">
-          {/* Avatar */}
-          <Avatar className="size-16 shrink-0 rounded-full bg-emerald-100">
+          {/* Avatar with ring */}
+          <Avatar className="size-16 shrink-0 rounded-full bg-emerald-100 ring-2 ring-emerald-200">
             {provider.photoUrl && <AvatarImage src={provider.photoUrl} alt={displayName} />}
             <AvatarFallback className="bg-emerald-100 text-emerald-700 text-base font-semibold rounded-full">
               {initials}
@@ -135,17 +145,30 @@ export function ProviderCard({ provider, onSlotClick }: ProviderCardProps) {
               {provider.costBadge && (
                 <Badge
                   variant="outline"
-                  className="shrink-0 border-emerald-300 text-emerald-700 bg-emerald-50/50"
+                  className="shrink-0 border-emerald-300 text-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50"
                 >
                   {provider.costBadge}
                 </Badge>
               )}
             </div>
 
-            {/* Clinic */}
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
+            {/* Clinic name (clickable) + Phone icon */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
               <Building2 className="size-3.5 shrink-0" />
-              <span className="truncate">{provider.clinic.name}</span>
+              <Link
+                href={`/clinic/${provider.clinic.slug}`}
+                className="truncate hover:underline hover:text-emerald-700 transition-colors cursor-pointer"
+              >
+                {provider.clinic.name}
+              </Link>
+              <a
+                href={`tel:${provider.clinic.phoneNumber}`}
+                className="shrink-0 text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer"
+                title={`Call ${provider.clinic.name}`}
+                aria-label={`Call ${provider.clinic.name} at ${provider.clinic.phoneNumber}`}
+              >
+                <Phone className="size-3.5" />
+              </a>
             </div>
 
             {/* Address + Distance */}
@@ -181,19 +204,29 @@ export function ProviderCard({ provider, onSlotClick }: ProviderCardProps) {
                 Available Times
               </h4>
               <div className="flex gap-2 flex-wrap">
-                {provider.earliestSlots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    onClick={() => handleSlotClick(slot.id)}
-                    className="cursor-pointer inline-flex flex-col items-start gap-1 rounded-lg border border-border px-3 py-2 text-sm transition-all duration-200 hover:bg-emerald-50 hover:border-emerald-300"
-                  >
-                    <span className="text-foreground">
-                      {formatSlotTime(slot.startTime)}
-                    </span>
-                    <ModalityBadge modality={slot.modality} />
-                  </button>
-                ))}
+                {provider.earliestSlots.map((slot) => {
+                  const isVideo = slot.modality === "VIDEO";
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => handleSlotClick(slot.id)}
+                      className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all duration-200 hover:shadow-sm animate-pulse-subtle
+                        ${isVideo
+                          ? "border-l-4 border-l-blue-400 border-border hover:bg-blue-50 hover:border-blue-300"
+                          : "border-l-4 border-l-emerald-400 border-border hover:bg-emerald-50 hover:border-emerald-300"
+                        }`}
+                    >
+                      <Calendar className="size-4 text-muted-foreground shrink-0" />
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="text-foreground">
+                          {formatSlotTime(slot.startTime)}
+                        </span>
+                        <ModalityBadge modality={slot.modality} />
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </>
@@ -203,11 +236,20 @@ export function ProviderCard({ provider, onSlotClick }: ProviderCardProps) {
         {provider.reviewSnippet && (
           <>
             <Separator />
-            <div className="flex gap-2">
-              <Quote className="size-4 shrink-0 text-muted-foreground/50 mt-0.5" />
-              <p className="text-sm italic text-muted-foreground line-clamp-2">
-                &ldquo;{provider.reviewSnippet}&rdquo;
-              </p>
+            <div className="space-y-1">
+              <div className="flex gap-2">
+                <Quote className="size-4 shrink-0 text-muted-foreground/50 mt-0.5" />
+                <p className="text-sm italic text-muted-foreground line-clamp-2">
+                  &ldquo;{provider.reviewSnippet}&rdquo;
+                </p>
+              </div>
+              <Link
+                href="#"
+                className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline transition-colors cursor-pointer pl-6"
+              >
+                Read more reviews
+                <ChevronRight className="size-3" />
+              </Link>
             </div>
           </>
         )}

@@ -80,6 +80,11 @@ export async function GET(
         }
       : null;
 
+    const services = (slot.provider.providerServices ?? []).map((ps) => ({
+      id: ps.service.id,
+      name: ps.service.name,
+    }));
+
     return NextResponse.json({
       slot: {
         id: slot.id,
@@ -111,6 +116,7 @@ export async function GET(
       },
       specialty,
       serviceId: slot.provider.providerServices?.[0]?.serviceId ?? null,
+      services,
     });
   } catch (error) {
     console.error("[SLOT_GET] Unexpected error:", error);

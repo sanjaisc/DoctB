@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Star, Building2 } from "lucide-react";
+import { Star, Calendar, Bell } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +28,7 @@ interface ProviderData {
   reviewCount: number;
   slug: string;
   slotDurationMinutes: number;
+  specialty: string | null;
 }
 
 export interface ClinicProviderRowProps {
@@ -56,6 +57,10 @@ function RatingStars({ rating }: { rating: number }) {
       ))}
     </div>
   );
+}
+
+function getInitials(firstName: string, lastName: string): string {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 }
 
 function formatSlotTime(startTime: string): string {
@@ -93,6 +98,8 @@ export function ClinicProviderRow({
     ? `Dr. ${fullName}, ${provider.credentials}`
     : `Dr. ${fullName}`;
 
+  const initials = getInitials(provider.firstName, provider.lastName);
+
   const handleSlotClick = (slotId: string) => {
     router.push(`/book?providerId=${provider.id}&slotId=${slotId}`);
   };
@@ -103,29 +110,52 @@ export function ClinicProviderRow({
     <Card className="w-full transition-all duration-200 hover:shadow-md py-0 gap-0">
       <CardContent className="p-4 space-y-3">
         {/* Provider info row */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            {/* Provider name as link */}
-            {firstSlotId ? (
-              <Link
-                href={`/book?providerId=${provider.id}&slotId=${firstSlotId}`}
-                className="text-lg font-semibold leading-tight text-emerald-700 hover:text-emerald-800 hover:underline transition-colors"
-              >
-                {displayName}
-              </Link>
-            ) : (
-              <span className="text-lg font-semibold leading-tight text-foreground">
-                {displayName}
-              </span>
-            )}
+        <div className="flex items-start gap-3">
+          {/* Avatar with initials */}
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 ring-2 ring-emerald-200 text-emerald-700 font-semibold text-sm">
+            {initials}
+          </div>
 
-            {/* Rating */}
-            <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0 space-y-1">
+            {/* Provider name as link + specialty badge */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {firstSlotId ? (
+                <Link
+                  href={`/book?providerId=${provider.id}&slotId=${firstSlotId}`}
+                  className="text-lg font-semibold leading-tight text-emerald-700 hover:text-emerald-800 hover:underline underline-offset-2 transition-colors cursor-pointer"
+                >
+                  {displayName}
+                </Link>
+              ) : (
+                <span className="text-lg font-semibold leading-tight text-foreground">
+                  {displayName}
+                </span>
+              )}
+              {provider.specialty && (
+                <Badge
+                  variant="outline"
+                  className="border-emerald-200 text-emerald-600 bg-emerald-50/50 text-[11px] font-medium shrink-0 cursor-default"
+                >
+                  {provider.specialty}
+                </Badge>
+              )}
+            </div>
+
+            {/* Rating + View reviews */}
+            <div className="flex items-center gap-2 flex-wrap">
               <RatingStars rating={provider.rating} />
               <span className="text-sm text-muted-foreground">
                 {provider.rating.toFixed(1)} ({provider.reviewCount}{" "}
                 {provider.reviewCount === 1 ? "review" : "reviews"})
               </span>
+              {provider.reviewCount > 0 && (
+                <Link
+                  href="#"
+                  className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer"
+                >
+                  View reviews
+                </Link>
+              )}
             </div>
           </div>
 
@@ -147,28 +177,66 @@ export function ClinicProviderRow({
                 Available Times
               </h4>
               <div className="flex gap-2 flex-wrap">
-                {slots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    onClick={() => handleSlotClick(slot.id)}
-                    className="cursor-pointer inline-flex flex-col items-start gap-1 rounded-lg border border-border px-3 py-2 text-sm transition-all duration-200 hover:bg-emerald-50 hover:border-emerald-300"
-                  >
-                    <span className="text-foreground">
-                      {formatSlotTime(slot.startTime)}
-                    </span>
-                    <ModalityBadge modality={slot.modality} />
-                  </button>
-                ))}
+                {slots.map((slot) => {
+                  const isVideo = slot.modality === "VIDEO";
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => handleSlotClick(slot.id)}
+                      className={`cursor-pointer group inline-flex items-center gap-3 rounded-lg border border-border overflow-hidden text-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-sm ${
+                        isVideo
+                          ? "hover:bg-blue-50/60 hover:border-blue-300"
+                          : "hover:bg-emerald-50 hover:border-emerald-300"
+                      }`}
+                    >
+                      {/* Left color accent */}
+                      <div
+                        className={`w-1 self-stretch shrink-0 ${
+                          isVideo
+                            ? "bg-blue-400 group-hover:bg-blue-500"
+                            : "bg-emerald-400 group-hover:bg-emerald-500"
+                        } transition-colors`}
+                      />
+                      {/* Content */}
+                      <div className="flex items-center gap-2 px-3 py-2">
+                        <Calendar
+                          className={`size-4 shrink-0 ${
+                            isVideo ? "text-blue-500" : "text-emerald-500"
+                          }`}
+                        />
+                        <span className="text-foreground whitespace-nowrap">
+                          {formatSlotTime(slot.startTime)}
+                        </span>
+                        <span
+                          className={`text-xs font-medium transition-opacity ${
+                            isVideo
+                              ? "text-blue-500 opacity-0 group-hover:opacity-100"
+                              : "text-emerald-600 opacity-0 group-hover:opacity-100"
+                          }`}
+                        >
+                          Book
+                        </span>
+                      </div>
+                      {/* Modality badge */}
+                      <div className="pr-2">
+                        <ModalityBadge modality={slot.modality} />
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </>
         ) : (
           <>
             <Separator />
-            <p className="text-sm text-muted-foreground italic">
-              No upcoming availability
-            </p>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Bell className="size-4 shrink-0" />
+              <p className="text-sm italic">
+                No upcoming availability — check back soon
+              </p>
+            </div>
           </>
         )}
       </CardContent>
