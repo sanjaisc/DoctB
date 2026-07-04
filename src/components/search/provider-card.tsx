@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import {
   Star,
   MapPin,
@@ -11,11 +13,26 @@ import {
   Phone,
   Calendar,
   ChevronRight,
+  ShieldCheck,
+  Navigation,
+  Bell,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { formatDistance } from "@/lib/geo";
 
 interface ProviderCardProps {
@@ -51,6 +68,7 @@ interface ProviderCardProps {
     costBadge: string | null;
   };
   index?: number;
+  specialtyId?: string;
   onSlotClick?: (providerId: string, slotId: string) => void;
 }
 
@@ -61,7 +79,7 @@ function RatingStars({ rating }: { rating: number }) {
       {Array.from({ length: 5 }, (_, i) => (
         <Star
           key={i}
-          className={`size-3.5 ${
+          className={`size-4 ${
             i < filledCount
               ? "fill-yellow-400 text-yellow-400"
               : "fill-gray-200 text-gray-200"
@@ -91,8 +109,15 @@ function ModalityBadge({ modality }: { modality: string }) {
   );
 }
 
-export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardProps) {
+export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: ProviderCardProps) {
   const router = useRouter();
+
+  // Waitlist state
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
+  const [waitlistName, setWaitlistName] = useState("");
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistPhone, setWaitlistPhone] = useState("");
 
   const initials = `${provider.firstName.charAt(0)}${provider.lastName.charAt(0)}`;
   const fullName = `${provider.firstName} ${provider.lastName}`;
@@ -117,11 +142,43 @@ export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardP
     }
   };
 
+  const handleJoinWaitlist = async () => {
+    if (!waitlistName.trim() || !waitlistEmail.trim() || !waitlistPhone.trim()) return;
+    setWaitlistSubmitting(true);
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerId: provider.id,
+          specialtyId: specialtyId || "",
+          patientName: waitlistName.trim(),
+          patientEmail: waitlistEmail.trim(),
+          patientPhone: waitlistPhone.trim(),
+          patientType: "ADULT",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to join waitlist");
+      }
+      setWaitlistOpen(false);
+      setWaitlistName("");
+      setWaitlistEmail("");
+      setWaitlistPhone("");
+      toast.success("You've been added to the waitlist!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to join waitlist");
+    } finally {
+      setWaitlistSubmitting(false);
+    }
+  };
+
   const staggerDelay = Math.min(index * 80, 400);
 
   return (
     <Card
-      className={`w-full max-w-3xl mx-auto transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:border-l-4 hover:border-l-emerald-400 hover:bg-emerald-50/30 py-0 gap-0 animate-in fade-in-0 slide-in-from-bottom-2`}
+      className={`w-full max-w-3xl mx-auto transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:border-l-4 hover:border-l-emerald-400 hover:bg-gradient-to-br hover:from-white hover:to-emerald-50/40 py-0 gap-0 animate-in fade-in-0 slide-in-from-bottom-2`}
       style={{ animationDelay: `${staggerDelay}ms`, animationFillMode: "both" }}
     >
       <CardContent className="p-4 space-y-3">
@@ -137,15 +194,21 @@ export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardP
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            {/* Name + Cost Badge */}
+            {/* Name + Verified Badge + Cost Badge */}
             <div className="flex items-start justify-between gap-2">
-              <h3 className="text-lg font-semibold leading-tight truncate">
-                {displayName}
-              </h3>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3 className="text-lg font-semibold leading-tight truncate">
+                  {displayName}
+                </h3>
+                <span className="shrink-0 inline-flex items-center gap-0.5 rounded-full border border-emerald-300 bg-emerald-50/80 px-1.5 py-0.5">
+                  <ShieldCheck className="size-3 text-emerald-600" />
+                  <span className="text-[10px] font-medium text-emerald-700 leading-none">Verified</span>
+                </span>
+              </div>
               {provider.costBadge && (
                 <Badge
                   variant="outline"
-                  className="shrink-0 border-emerald-300 text-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50"
+                  className="shrink-0 border-emerald-300 text-sm font-semibold text-emerald-700 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50"
                 >
                   {provider.costBadge}
                 </Badge>
@@ -176,12 +239,13 @@ export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardP
               <MapPin className="size-3.5 shrink-0 mt-0.5" />
               <span className="truncate">
                 {address}
-                {provider.distance != null && (
-                  <span className="font-medium text-emerald-600 ml-1">
-                    · {formatDistance(provider.distance)}
-                  </span>
-                )}
               </span>
+              {provider.distance != null && (
+                <span className="inline-flex items-center gap-1 shrink-0 font-medium text-emerald-600">
+                  <Navigation className="size-3" />
+                  {formatDistance(provider.distance)} away
+                </span>
+              )}
             </div>
 
             {/* Rating */}
@@ -196,7 +260,7 @@ export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardP
         </div>
 
         {/* Available Times */}
-        {provider.earliestSlots.length > 0 && (
+        {provider.earliestSlots.length > 0 ? (
           <>
             <Separator />
             <div className="space-y-2">
@@ -230,12 +294,105 @@ export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardP
               </div>
             </div>
           </>
+        ) : (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-foreground">
+                Available Times
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                No available times found for this provider.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-800 cursor-pointer"
+                onClick={() => setWaitlistOpen(true)}
+              >
+                <Bell className="size-4 mr-2" />
+                Join Waitlist
+              </Button>
+            </div>
+          </>
         )}
+
+        {/* Waitlist Dialog */}
+        <Dialog open={waitlistOpen} onOpenChange={setWaitlistOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Join the Waitlist</DialogTitle>
+              <DialogDescription>
+                No available times for this provider. Join the waitlist and
+                we&apos;ll notify you when a slot opens up.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="waitlist-name">Full Name *</Label>
+                <Input
+                  id="waitlist-name"
+                  placeholder="John Doe"
+                  value={waitlistName}
+                  onChange={(e) => setWaitlistName(e.target.value)}
+                  disabled={waitlistSubmitting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waitlist-email">Email *</Label>
+                <Input
+                  id="waitlist-email"
+                  type="email"
+                  placeholder="john@example.com"
+                  value={waitlistEmail}
+                  onChange={(e) => setWaitlistEmail(e.target.value)}
+                  disabled={waitlistSubmitting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waitlist-phone">Phone *</Label>
+                <Input
+                  id="waitlist-phone"
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={waitlistPhone}
+                  onChange={(e) => setWaitlistPhone(e.target.value)}
+                  disabled={waitlistSubmitting}
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setWaitlistOpen(false)}
+                disabled={waitlistSubmitting}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleJoinWaitlist}
+                disabled={
+                  waitlistSubmitting ||
+                  !waitlistName.trim() ||
+                  !waitlistEmail.trim() ||
+                  !waitlistPhone.trim()
+                }
+                className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+              >
+                {waitlistSubmitting && <Loader2 className="size-4 animate-spin mr-2" />}
+                Join Waitlist
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Review Snippet */}
         {provider.reviewSnippet && (
           <>
-            <Separator />
+            <Separator className="bg-gradient-to-r from-transparent via-emerald-200/60 to-transparent" />
             <div className="space-y-1">
               <div className="flex gap-2">
                 <Quote className="size-4 shrink-0 text-muted-foreground/50 mt-0.5" />
@@ -245,7 +402,7 @@ export function ProviderCard({ provider, index = 0, onSlotClick }: ProviderCardP
               </div>
               <Link
                 href="#"
-                className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline transition-colors cursor-pointer pl-6"
+                className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline hover:translate-x-0.5 transition-all cursor-pointer pl-6"
               >
                 Read more reviews
                 <ChevronRight className="size-3" />

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ClinicProviderRow } from "@/components/clinic/clinic-provider-row";
 import { AboutText } from "@/components/clinic/about-text";
 import { db } from "@/lib/db";
@@ -184,9 +185,12 @@ export default async function ClinicDetailPage({ params }: PageProps) {
               ClinicBook
             </span>
           </Link>
-          <Button variant="outline" size="sm" className="cursor-pointer">
-            Staff Login
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" className="cursor-pointer">
+              Staff Login
+            </Button>
+          </div>
         </div>
       </header>
 

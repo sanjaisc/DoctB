@@ -1,18 +1,26 @@
 "use client";
 
+import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 
 /**
- * Client-side provider wrapper for NextAuth SessionProvider.
+ * Client-side provider wrapper for NextAuth SessionProvider and ThemeProvider.
  * The root layout is a Server Component and cannot use Context providers directly.
  * This component bridges that gap.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      {children}
-      <Toaster position="top-right" richColors closeButton />
-    </SessionProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <SessionProvider>
+        {children}
+        <Toaster position="top-right" richColors closeButton />
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

@@ -61,7 +61,7 @@ export default function StaffLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50/80 via-background to-teal-50/40">
       {/* Top accent bar */}
       <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600" />
 
@@ -91,7 +91,7 @@ export default function StaffLoginPage() {
           </div>
 
           {/* Login card */}
-          <div className="bg-white rounded-2xl shadow-xl shadow-emerald-900/5 border border-border/60 p-8">
+          <div className="bg-card rounded-2xl shadow-xl shadow-emerald-900/5 border border-border/60 p-8">
             {/* Card header */}
             <div className="flex items-center gap-3 mb-6">
               <div className="size-10 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -142,7 +142,7 @@ export default function StaffLoginPage() {
                     autoComplete="email"
                     autoFocus
                     disabled={isLoading}
-                    className="pl-10 h-11 bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                    className="pl-10 h-11 bg-muted/30 border-border/50 focus:bg-background transition-colors"
                   />
                 </div>
               </div>

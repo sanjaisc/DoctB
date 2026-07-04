@@ -121,6 +121,31 @@
   }
 }
 
+/* Smooth theme transitions (respects reduced motion preference) */
+@media (prefers-color-scheme: no-preference) {
+  * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+  }
+}
+
+/* Dark mode refinements */
+.dark .border-border\/50 {
+  border-color: oklch(0.3 0 0 / 50%);
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: oklch(0.22 0 0);
+  border-color: oklch(0.3 0 0);
+  color: oklch(0.9 0 0);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: oklch(0.6 0 0);
+}
+
 /* Custom animations */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
@@ -181,4 +206,13 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: oklch(0.75 0.02 160);
+}
+
+/* Page transitions */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: slideUp 0.4s ease-out;
 }

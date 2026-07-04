@@ -18,6 +18,12 @@ import {
   LocateFixed,
   Cross,
   CheckCircle2,
+  Star,
+  CalendarCheck,
+  HeartPulse,
+  Bone,
+  Sparkles,
+  LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +41,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { ProviderCard } from "@/components/search/provider-card";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -93,6 +100,25 @@ interface SearchResponse {
   total: number;
 }
 
+interface FeaturedClinic {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  city: string;
+  state: string;
+  zipCode: string;
+  phoneNumber: string;
+  email: string;
+  website: string | null;
+  coverImageUrl: string | null;
+  specialties: string[];
+  providerCount: number;
+  rating: number;
+  firstProvider: { firstName: string; lastName: string; credentials: string | null } | null;
+  availableSlotsCount: number;
+}
+
 // -----------------------------------------------------------------------------
 // Search Helpers
 // -----------------------------------------------------------------------------
@@ -127,6 +153,22 @@ function buildFetchUrl(params: SearchParams): string {
   return `/api/search/providers?${sp.toString()}`;
 }
 
+// -----------------------------------------------------------------------------
+// Specialty Icon Mapping
+// -----------------------------------------------------------------------------
+
+const SPECIALTY_ICON_MAP: Record<string, typeof Stethoscope> = {
+  "Family Medicine": Stethoscope,
+  "Cardiology": HeartPulse,
+  "Dermatology": Sparkles,
+  "Pediatrics": Baby,
+  "Orthopedics": Bone,
+};
+
+function getSpecialtyIcon(name: string): typeof Stethoscope {
+  return SPECIALTY_ICON_MAP[name] ?? Stethoscope;
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -159,22 +201,33 @@ export function SearchPage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [searched, setSearched] = useState(false);
 
+  // ---- Featured Clinics ----
+  const [clinics, setClinics] = useState<FeaturedClinic[]>([]);
+
   // ---------------------------------------------------------------------------
-  // Fetch Taxonomies on Mount
+  // Fetch Taxonomies & Clinics on Mount
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    async function fetchTaxonomies() {
+    async function fetchInitialData() {
       try {
-        const res = await fetch("/api/taxonomies");
-        if (!res.ok) return;
-        const data = await res.json();
-        setSpecialties(data.specialties ?? []);
-        setInsurances(data.insurances ?? []);
+        const [taxRes, clinicRes] = await Promise.all([
+          fetch("/api/taxonomies"),
+          fetch("/api/clinics"),
+        ]);
+        if (taxRes.ok) {
+          const data = await taxRes.json();
+          setSpecialties(data.specialties ?? []);
+          setInsurances(data.insurances ?? []);
+        }
+        if (clinicRes.ok) {
+          const clinicData = await clinicRes.json();
+          setClinics(clinicData.clinics ?? []);
+        }
       } catch {
         // Silently fail
       }
     }
-    fetchTaxonomies();
+    fetchInitialData();
 
     // Attempt browser geolocation (non-blocking)
     if (typeof navigator !== "undefined" && navigator.geolocation) {
@@ -358,16 +411,29 @@ export function SearchPage() {
               ClinicBook
             </span>
           </div>
-          <Link href="/staff/login">
-            <Button variant="outline" size="sm" className="cursor-pointer">
-              Staff Login
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link href="/staff/login">
+              <Button variant="outline" size="sm" className="cursor-pointer">
+                Staff Login
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* ===== Hero Section ===== */}
       <section className="relative bg-gradient-to-br from-emerald-50 via-white to-teal-50/30 pb-8 pt-12 md:pt-16 overflow-hidden">
+        {/* Dot pattern background */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #059669 0.8px, transparent 0.8px)',
+            backgroundSize: '32px 32px',
+            opacity: 0.04,
+          }}
+          aria-hidden="true"
+        />
         {/* Decorative background elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
           {/* Large gradient blob — top right */}
@@ -380,7 +446,7 @@ export function SearchPage() {
           <div className="absolute bottom-16 left-[30%] w-1 h-1 rounded-full bg-teal-400/40" />
           {/* Heartbeat line */}
           <svg
-            className="absolute bottom-4 left-0 w-full h-6 text-emerald-200/50"
+            className="absolute bottom-4 left-0 w-full h-6 text-emerald-200/50 animate-heartbeat"
             viewBox="0 0 1200 24"
             preserveAspectRatio="none"
             fill="none"
@@ -436,9 +502,10 @@ export function SearchPage() {
             </div>
           </div>
 
-          {/* ===== Search Form — Card Wrapper ===== */}
+          {/* Search Form — Card Wrapper with animated gradient border */}
           <form onSubmit={onFormSubmit} className="text-left">
-            <div className="rounded-2xl border bg-white/80 backdrop-blur-sm shadow-lg shadow-emerald-900/5 p-4 md:p-6 space-y-4">
+            <div className="p-[1px] rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]">
+            <div className="rounded-[15px] border-0 bg-white/90 backdrop-blur-sm shadow-lg shadow-emerald-900/5 p-4 md:p-6 space-y-4">
               {/* Row 1: Search Input */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
@@ -637,11 +704,11 @@ export function SearchPage() {
               </div>
 
               {/* Row 4: Search Button */}
-              <div className="flex flex-col items-center gap-1.5">
+              <div className="flex flex-col items-center gap-2">
                 <Button
                   type="submit"
                   disabled={!specialtyId || loading}
-                  className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-base font-medium shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/25 transition-all"
+                  className="h-12 px-10 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-base font-semibold shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all"
                 >
                   {loading ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -655,7 +722,23 @@ export function SearchPage() {
                     Please select a specialty to search
                   </span>
                 )}
+                {/* Popular search chip */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const familyMed = specialties.find(s => s.name === "Family Medicine");
+                    if (familyMed) {
+                      setSpecialtyId(familyMed.id);
+                      executeSearch({ specialtyId: familyMed.id });
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all cursor-pointer"
+                >
+                  <span className="text-emerald-500">🔥</span>
+                  Popular: Family Medicine
+                </button>
               </div>
+            </div>
             </div>
           </form>
         </div>
@@ -663,54 +746,258 @@ export function SearchPage() {
 
       {/* ===== Results Section ===== */}
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 space-y-6">
-        {/* Initial Load — No search yet */}
+        {/* ===== Initial Load — Featured Content ===== */}
         {initialLoad && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            {/* Medical-themed CSS illustration */}
-            <div className="relative w-24 h-24 mb-6">
-              <div className="absolute inset-0 rounded-full bg-emerald-100/60" />
-              <div className="absolute inset-2 rounded-full bg-emerald-100/80" />
-              <div className="absolute inset-4 rounded-full bg-emerald-200/50" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Stethoscope className="size-10 text-emerald-500/60" />
+          <div className="space-y-14 pb-4">
+            {/* Subtle hero illustration */}
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="relative w-16 h-16 mb-3">
+                <div className="absolute inset-0 rounded-full bg-emerald-100/50" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Stethoscope className="size-7 text-emerald-500/50" />
+                </div>
               </div>
-              {/* Pulse ring */}
-              <div className="absolute inset-0 rounded-full border-2 border-emerald-300/30 animate-ping" />
+              <h2 className="text-lg font-semibold text-foreground mb-1">
+                Ready to find your provider?
+              </h2>
+              <p className="text-muted-foreground text-sm max-w-sm">
+                Select a specialty above and hit search. We&apos;ll show you available
+                doctors near you with open appointment slots.
+              </p>
             </div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              Ready to find your provider?
-            </h2>
-            <p className="text-muted-foreground text-sm max-w-sm">
-              Select a specialty above and hit search. We&apos;ll show you available
-              doctors near you with open appointment slots.
-            </p>
+
+            {/* ----- Featured Clinics ----- */}
+            {clinics.length > 0 && (
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-5 text-emerald-600" />
+                    <h2 className="text-xl font-bold text-foreground">Featured Clinics</h2>
+                  </div>
+                  <Link
+                    href="/clinics"
+                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium hover:underline transition-colors cursor-pointer"
+                  >
+                    View all →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {clinics.slice(0, 3).map((clinic, idx) => (
+                    <div
+                      key={clinic.id}
+                      className="group relative rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                      style={{ animationDelay: `${idx * 100}ms` }}
+                    >
+                      {/* Emerald gradient accent strip */}
+                      <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400" />
+                      <div className="p-5 space-y-3">
+                        {/* Clinic Name */}
+                        <Link
+                          href={`/clinic/${clinic.slug}`}
+                          className="block font-bold text-foreground group-hover:text-emerald-700 transition-colors cursor-pointer"
+                        >
+                          {clinic.name}
+                        </Link>
+                        {/* Tagline */}
+                        {clinic.tagline && (
+                          <p className="text-sm italic text-muted-foreground line-clamp-1">
+                            {clinic.tagline}
+                          </p>
+                        )}
+                        {/* City, State */}
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <MapPin className="size-3.5 shrink-0" />
+                          <span>{clinic.city}, {clinic.state}</span>
+                        </div>
+                        {/* Rating */}
+                        <div className="flex items-center gap-1.5 text-sm">
+                          {Array.from({ length: 5 }).map((_, s) => (
+                            <Star
+                              key={s}
+                              className={`size-3.5 ${
+                                s < Math.round(clinic.rating)
+                                  ? "text-amber-400 fill-amber-400"
+                                  : "text-muted-foreground/30"
+                              }`}
+                            />
+                          ))}
+                          <span className="text-muted-foreground ml-0.5">
+                            {clinic.rating > 0 ? clinic.rating.toFixed(1) : "New"}
+                          </span>
+                        </div>
+                        {/* Specialty Badges */}
+                        {clinic.specialties.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {clinic.specialties.slice(0, 3).map((spec) => (
+                              <Badge
+                                key={spec}
+                                variant="outline"
+                                className="text-xs border-emerald-200 text-emerald-700 bg-emerald-50/50"
+                              >
+                                {spec}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {/* Available Slots */}
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Clock className="size-3.5 text-emerald-500" />
+                          <span>{clinic.availableSlotsCount} available this week</span>
+                        </div>
+                        {/* View Clinic Link */}
+                        <Link
+                          href={`/clinic/${clinic.slug}`}
+                          className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer pt-1"
+                        >
+                          View Clinic →
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ----- How It Works ----- */}
+            <section className="space-y-6">
+              <h2 className="text-xl font-bold text-foreground text-center">How It Works</h2>
+              <div className="relative">
+                {/* Dotted connector line — desktop only */}
+                <div className="hidden md:block absolute top-7 left-[16.6%] right-[16.6%] border-t-2 border-dashed border-emerald-200" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
+                  {[
+                    {
+                      num: 1,
+                      Icon: Search,
+                      title: "Find Your Provider",
+                      desc: "Search by specialty, location, or provider name to see available doctors near you.",
+                    },
+                    {
+                      num: 2,
+                      Icon: CalendarCheck,
+                      title: "Book an Appointment",
+                      desc: "Choose a convenient time slot, enter your details, and confirm your booking in minutes.",
+                    },
+                    {
+                      num: 3,
+                      Icon: Heart,
+                      title: "Get Care",
+                      desc: "Visit your provider in-person or via video call. Check in online before your appointment.",
+                    },
+                  ].map((step, idx) => (
+                    <div
+                      key={step.num}
+                      className="flex flex-col items-center text-center space-y-3"
+                      style={{ animationDelay: `${idx * 120}ms` }}
+                    >
+                      {/* Step number circle with icon */}
+                      <div className="relative z-10 size-14 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
+                        <step.Icon className="size-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-foreground">{step.title}</h3>
+                        <p className="text-sm text-muted-foreground max-w-[260px]">{step.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* ----- Browse by Specialty ----- */}
+            {specialties.length > 0 && (
+              <section className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <LayoutGrid className="size-5 text-emerald-600" />
+                  <h2 className="text-xl font-bold text-foreground">Browse by Specialty</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {specialties.slice(0, 10).map((spec, idx) => {
+                    const SpecialtyIcon = getSpecialtyIcon(spec.name);
+                    return (
+                      <button
+                        key={spec.id}
+                        type="button"
+                        onClick={() => {
+                          setSpecialtyId(spec.id);
+                          executeSearch({ specialtyId: spec.id });
+                        }}
+                        className="flex flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center hover:shadow-md hover:border-emerald-300 hover:bg-emerald-50/50 transition-all duration-200 cursor-pointer"
+                        style={{ animationDelay: `${idx * 60}ms` }}
+                      >
+                        <SpecialtyIcon className="size-6 text-emerald-600" />
+                        <span className="text-sm font-medium text-foreground leading-tight">
+                          {spec.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </div>
         )}
 
-        {/* Loading Skeletons — Shimmer with emerald tint */}
+        {/* Loading Skeletons — Shimmer matching provider card structure */}
         {loading && (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl border p-4 space-y-3 bg-card overflow-hidden"
+                className="w-full max-w-3xl mx-auto rounded-xl border p-4 space-y-3 bg-card overflow-hidden"
+                style={{ animationDelay: `${i * 100}ms` }}
               >
+                {/* Top row: Avatar + Info skeleton */}
                 <div className="flex gap-4">
                   <div className="skeleton-shimmer size-16 rounded-full shrink-0" />
                   <div className="flex-1 space-y-2.5">
-                    <div className="skeleton-shimmer h-5 w-48 rounded-md" />
-                    <div className="skeleton-shimmer h-4 w-36 rounded-md" />
-                    <div className="skeleton-shimmer h-4 w-64 rounded-md" />
-                    <div className="skeleton-shimmer h-4 w-24 rounded-md" />
+                    {/* Name + Verified badge row */}
+                    <div className="flex items-center gap-2">
+                      <div className="skeleton-shimmer h-5 w-40 rounded-md" />
+                      <div className="skeleton-shimmer h-5 w-14 rounded-full" />
+                    </div>
+                    {/* Clinic name + phone */}
+                    <div className="flex items-center gap-2">
+                      <div className="skeleton-shimmer h-3.5 w-4 rounded-sm" />
+                      <div className="skeleton-shimmer h-4 w-32 rounded-md" />
+                      <div className="skeleton-shimmer h-3.5 w-3.5 rounded-sm ml-auto" />
+                    </div>
+                    {/* Address + distance */}
+                    <div className="flex items-center gap-2">
+                      <div className="skeleton-shimmer h-3.5 w-4 rounded-sm" />
+                      <div className="skeleton-shimmer h-4 w-56 rounded-md" />
+                      <div className="skeleton-shimmer h-4 w-16 rounded-md" />
+                    </div>
+                    {/* Rating row */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, s) => (
+                          <div key={s} className="skeleton-shimmer size-4 rounded-sm" />
+                        ))}
+                      </div>
+                      <div className="skeleton-shimmer h-4 w-24 rounded-md" />
+                    </div>
                   </div>
                 </div>
+                {/* Separator */}
                 <div className="skeleton-shimmer h-px w-full" />
+                {/* Available Times skeleton */}
                 <div className="space-y-2.5">
                   <div className="skeleton-shimmer h-4 w-28 rounded-md" />
                   <div className="flex gap-2">
                     <div className="skeleton-shimmer h-14 w-44 rounded-lg border-l-4 border-l-emerald-300" />
                     <div className="skeleton-shimmer h-14 w-44 rounded-lg border-l-4 border-l-emerald-300" />
-                    <div className="skeleton-shimmer h-14 w-44 rounded-lg border-l-4 border-l-emerald-300" />
+                    <div className="skeleton-shimmer h-14 w-44 rounded-lg border-l-4 border-l-emerald-300 hidden sm:block" />
+                  </div>
+                </div>
+                {/* Separator before review */}
+                <div className="skeleton-shimmer h-px w-full" />
+                {/* Review snippet skeleton */}
+                <div className="flex gap-2 pl-1">
+                  <div className="skeleton-shimmer size-4 rounded-sm shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="skeleton-shimmer h-3.5 w-full rounded-md" />
+                    <div className="skeleton-shimmer h-3.5 w-3/4 rounded-md" />
                   </div>
                 </div>
               </div>
@@ -845,7 +1132,7 @@ export function SearchPage() {
 
             <div className="space-y-4">
               {results.map((provider, idx) => (
-                <ProviderCard key={provider.id} provider={provider} index={idx} />
+                <ProviderCard key={provider.id} provider={provider} index={idx} specialtyId={specialtyId ?? undefined} />
               ))}
             </div>
 
@@ -868,18 +1155,58 @@ export function SearchPage() {
       </main>
 
       {/* ===== Sticky Footer ===== */}
-      <footer className="mt-auto border-t bg-white/80 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>© 2026 ClinicBook. All rights reserved.</span>
-          <nav className="flex items-center gap-3">
-            <Link href="/" className="hover:text-foreground transition-colors cursor-pointer">Home</Link>
-            <span className="text-muted-foreground/30">|</span>
-            <Link href="/clinics" className="hover:text-foreground transition-colors cursor-pointer">Browse All Clinics</Link>
-            <span className="text-muted-foreground/30">|</span>
-            <Link href="#" className="hover:text-foreground transition-colors cursor-pointer">Privacy Policy</Link>
-            <span className="text-muted-foreground/30">|</span>
-            <Link href="#" className="hover:text-foreground transition-colors cursor-pointer">Terms of Service</Link>
-          </nav>
+      <footer className="mt-auto bg-white/80 backdrop-blur-sm">
+        {/* Gradient top border separator */}
+        <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/50 to-transparent" />
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          {/* 4-Column Layout */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-6">
+            {/* Company */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</h4>
+              <nav className="flex flex-col gap-2">
+                <Link href="/" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Home</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">About</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Careers</Link>
+              </nav>
+            </div>
+            {/* For Patients */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">For Patients</h4>
+              <nav className="flex flex-col gap-2">
+                <Link href="/" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Find Doctors</Link>
+                <Link href="/" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Book Online</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Patient Portal</Link>
+              </nav>
+            </div>
+            {/* For Clinics */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">For Clinics</h4>
+              <nav className="flex flex-col gap-2">
+                <Link href="#" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">List Your Clinic</Link>
+                <Link href="/staff/login" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Staff Login</Link>
+              </nav>
+            </div>
+            {/* Legal */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Legal</h4>
+              <nav className="flex flex-col gap-2">
+                <Link href="#" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Privacy Policy</Link>
+                <Link href="#" className="text-sm text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer">Terms of Service</Link>
+              </nav>
+            </div>
+          </div>
+          {/* Bottom line */}
+          <div className="border-t border-border/50 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-muted-foreground">Made with ❤️ in New York</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">© 2026 ClinicBook. All rights reserved.</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Heart className="size-3.5 text-emerald-600 fill-emerald-600" />
+              <span className="text-sm font-bold tracking-tight text-foreground">ClinicBook</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

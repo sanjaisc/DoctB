@@ -30,6 +30,7 @@ import {
   StickyNote,
   DollarSign,
   Hash,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,6 +132,22 @@ interface ProviderOption {
   credentials: string | null;
 }
 
+interface WaitlistRow {
+  id: string;
+  patientName: string;
+  patientEmail: string;
+  patientPhone: string;
+  patientType: string;
+  preferredModality: string | null;
+  status: string;
+  contactCount: number;
+  lastContactAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  providerName: string;
+  specialtyName: string;
+}
+
 // =============================================================================
 // Status Helpers
 // =============================================================================
@@ -206,6 +223,15 @@ export default function AppointmentsPage() {
 
   // Status transition
   const [transitioningId, setTransitioningId] = useState<string | null>(null);
+
+  // View mode: appointments or waitlist
+  const [viewMode, setViewMode] = useState<"appointments" | "waitlist">("appointments");
+
+  // Waitlist data
+  const [waitlistEntries, setWaitlistEntries] = useState<WaitlistRow[]>([]);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistError, setWaitlistError] = useState<string | null>(null);
+  const [waitlistActionId, setWaitlistActionId] = useState<string | null>(null);
 
   // Build query params
   const buildQuery = useCallback(
@@ -396,6 +422,66 @@ export default function AppointmentsPage() {
     }
   };
 
+  // Fetch waitlist entries
+  const fetchWaitlist = useCallback(async () => {
+    if (!clinicId) return;
+    setWaitlistLoading(true);
+    setWaitlistError(null);
+    try {
+      const res = await fetch(`/api/staff/waitlist?clinicId=${clinicId}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to fetch waitlist");
+      }
+      const data = await res.json();
+      setWaitlistEntries(data.data || []);
+    } catch (err) {
+      setWaitlistError(err instanceof Error ? err.message : "Failed to fetch waitlist");
+    } finally {
+      setWaitlistLoading(false);
+    }
+  }, [clinicId]);
+
+  // Fetch waitlist when view mode changes
+  useEffect(() => {
+    if (viewMode === "waitlist") {
+      fetchWaitlist();
+    }
+  }, [viewMode, fetchWaitlist]);
+
+  // Waitlist action handler (update status or contact)
+  const handleWaitlistAction = async (entryId: string, action: string) => {
+    setWaitlistActionId(entryId);
+    try {
+      const body: Record<string, unknown> = { id: entryId };
+      if (action === "contact") {
+        body.incrementContact = true;
+      } else {
+        body.status = action;
+      }
+      const res = await fetch("/api/staff/waitlist", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update waitlist entry");
+      }
+      fetchWaitlist();
+      const actionLabels: Record<string, string> = {
+        OFFERED: "marked as offered",
+        EXPIRED: "marked as expired",
+        contact: "contact recorded",
+      };
+      toast.success(`Entry ${actionLabels[action] || "updated"}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update entry");
+    } finally {
+      setWaitlistActionId(null);
+    }
+  };
+
   // Format cents
   const formatCents = (cents: number) => {
     if (cents === 0) return "Free";
@@ -435,7 +521,23 @@ export default function AppointmentsPage() {
     { key: "COMPLETED", label: "Completed" },
     { key: "CANCELLED", label: "Cancelled" },
     { key: "NO_SHOW", label: "No Show" },
+    { key: "__WAITLIST__", label: "Waitlist", isWaitlist: true },
   ];
+
+  // Waitlist status styles
+  const WL_STATUS_STYLES: Record<string, string> = {
+    WAITING: "bg-amber-100 text-amber-700 border-amber-200",
+    OFFERED: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    EXPIRED: "bg-gray-100 text-gray-600 border-gray-200",
+    ACCEPTED: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  };
+
+  const WL_STATUS_LABELS: Record<string, string> = {
+    WAITING: "Waiting",
+    OFFERED: "Offered",
+    EXPIRED: "Expired",
+    ACCEPTED: "Accepted",
+  };
 
   return (
     <div className="space-y-4">
@@ -451,24 +553,41 @@ export default function AppointmentsPage() {
       <div className="bg-white rounded-xl border border-border/60 shadow-sm p-4 space-y-3">
         {/* Status Tabs */}
         <div className="flex flex-wrap gap-1.5">
-          {statusTabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer border ${
-                statusFilter === tab.key
-                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                  : "bg-white text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {statusTabs.map((tab) => {
+            const isWl = 'isWaitlist' in tab && tab.isWaitlist;
+            const isActive = isWl
+              ? viewMode === "waitlist"
+              : viewMode === "appointments" && statusFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  if (isWl) {
+                    setViewMode("waitlist");
+                  } else {
+                    setViewMode("appointments");
+                    setStatusFilter(tab.key);
+                  }
+                }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer border ${
+                  isActive
+                    ? isWl
+                      ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                      : "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-white text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                }`}
+              >
+                {isWl && <Bell className="size-3 mr-1 inline" />}
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         <Separator />
 
-        {/* Search + Filters Row */}
+        {/* Search + Filters Row — only show for appointments view */}
+        {viewMode === "appointments" && (
         <div className="flex flex-col sm:flex-row gap-2.5">
           {/* Search */}
           <div className="relative flex-1">
@@ -526,9 +645,11 @@ export default function AppointmentsPage() {
             />
           </div>
         </div>
+        )}
       </div>
 
-      {/* Results Count */}
+      {/* Results Count — only show for appointments view */}
+      {viewMode === "appointments" && (
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {loading ? (
@@ -555,8 +676,178 @@ export default function AppointmentsPage() {
           </button>
         )}
       </div>
+      )}
 
-      {/* Table */}
+      {/* ================================================================== */}
+      {/* WAITLIST VIEW                                                       */}
+      {/* ================================================================== */}
+      {viewMode === "waitlist" ? (
+        <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/60 bg-muted/30">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Joined</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Patient</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Provider</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Specialty</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Contacts</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {waitlistLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i} className="border-b border-border/30">
+                      <td className="py-3 px-4"><Skeleton className="h-4 w-24" /></td>
+                      <td className="py-3 px-4"><Skeleton className="h-4 w-32" /></td>
+                      <td className="py-3 px-4 hidden md:table-cell"><Skeleton className="h-4 w-28" /></td>
+                      <td className="py-3 px-4 hidden lg:table-cell"><Skeleton className="h-4 w-24" /></td>
+                      <td className="py-3 px-4"><Skeleton className="h-5 w-16" /></td>
+                      <td className="py-3 px-4 hidden sm:table-cell"><Skeleton className="h-4 w-8" /></td>
+                      <td className="py-3 px-4"><Skeleton className="h-8 w-8 ml-auto" /></td>
+                    </tr>
+                  ))
+                ) : waitlistError ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center">
+                      <p className="text-sm text-red-500">{waitlistError}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchWaitlist}
+                        className="mt-2 cursor-pointer"
+                      >
+                        Retry
+                      </Button>
+                    </td>
+                  </tr>
+                ) : waitlistEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-16 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
+                          <Bell className="size-5 text-muted-foreground/60" />
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">No waitlist entries</p>
+                        <p className="text-xs text-muted-foreground/70">
+                          Patients will appear here when they join the waitlist
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  waitlistEntries.map((entry, index) => (
+                    <tr
+                      key={entry.id}
+                      className={`border-b border-border/30 transition-colors hover:bg-amber-50/30 ${
+                        index % 2 === 0 ? "bg-white" : "bg-muted/15"
+                      }`}
+                    >
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="size-3.5 text-muted-foreground/60" />
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(entry.createdAt), "MMM d, h:mm a")}
+                          </span>
+                        </div>
+                        {entry.expiresAt && (
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                            Expires: {format(parseISO(entry.expiresAt), "MMM d")}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="size-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                            <User className="size-3.5 text-amber-600" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{entry.patientName}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {entry.patientEmail}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 hidden md:table-cell whitespace-nowrap">
+                        <span className="text-sm">{entry.providerName}</span>
+                      </td>
+                      <td className="py-3 px-4 hidden lg:table-cell whitespace-nowrap text-muted-foreground">
+                        {entry.specialtyName}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge className={`${WL_STATUS_STYLES[entry.status] || WL_STATUS_STYLES.WAITING} border`}>
+                          {WL_STATUS_LABELS[entry.status] || entry.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 hidden sm:table-cell">
+                        <span className="text-sm text-muted-foreground">
+                          {entry.contactCount}
+                        </span>
+                        {entry.lastContactAt && (
+                          <p className="text-[10px] text-muted-foreground/60">
+                            Last: {format(parseISO(entry.lastContactAt), "MMM d")}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 cursor-pointer"
+                              disabled={waitlistActionId === entry.id}
+                            >
+                              {waitlistActionId === entry.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="size-4" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {entry.status === "WAITING" && (
+                              <DropdownMenuItem
+                                onClick={() => handleWaitlistAction(entry.id, "OFFERED")}
+                                className="cursor-pointer"
+                              >
+                                <CheckCircle2 className="size-3.5 mr-2 text-emerald-600" />
+                                Mark as Offered
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => handleWaitlistAction(entry.id, "contact")}
+                              className="cursor-pointer"
+                            >
+                              <Phone className="size-3.5 mr-2 text-amber-600" />
+                              Record Contact
+                            </DropdownMenuItem>
+                            {(entry.status === "WAITING" || entry.status === "OFFERED") && (
+                              <DropdownMenuSeparator />
+                            )}
+                            {(entry.status === "WAITING" || entry.status === "OFFERED") && (
+                              <DropdownMenuItem
+                                onClick={() => handleWaitlistAction(entry.id, "EXPIRED")}
+                                className="cursor-pointer text-red-600 focus:text-red-600"
+                              >
+                                <XCircle className="size-3.5 mr-2" />
+                                Mark as Expired
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
       <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -779,6 +1070,7 @@ export default function AppointmentsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ================================================================== */}
       {/* DETAIL DIALOG                                                      */}

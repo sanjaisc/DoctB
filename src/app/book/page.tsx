@@ -54,6 +54,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { PATIENT_TYPE, SLOT_MODALITY } from "@/lib/enums";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // =============================================================================
 // Types
@@ -760,9 +761,12 @@ export default function BookingPage() {
                 ClinicBook
               </span>
             </div>
-            <Button variant="outline" size="sm" className="cursor-pointer">
-              Staff Login
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" className="cursor-pointer">
+                Staff Login
+              </Button>
+            </div>
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center py-20">
@@ -789,9 +793,12 @@ export default function BookingPage() {
                 ClinicBook
               </span>
             </div>
-            <Button variant="outline" size="sm" className="cursor-pointer">
-              Staff Login
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" className="cursor-pointer">
+                Staff Login
+              </Button>
+            </div>
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center py-20 px-4">
@@ -847,9 +854,12 @@ export default function BookingPage() {
                 ClinicBook
               </span>
             </div>
-            <Button variant="outline" size="sm" className="cursor-pointer">
-              Staff Login
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" className="cursor-pointer">
+                Staff Login
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -1105,9 +1115,12 @@ export default function BookingPage() {
               ClinicBook
             </span>
           </div>
-          <Button variant="outline" size="sm" className="cursor-pointer">
-            Staff Login
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" className="cursor-pointer">
+              Staff Login
+            </Button>
+          </div>
         </div>
       </header>
 

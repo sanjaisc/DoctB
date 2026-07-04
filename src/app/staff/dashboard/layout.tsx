@@ -16,6 +16,7 @@ import {
   Bell,
   Building2,
   ShieldCheck,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useState, useEffect } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { ClinicBookSessionUser } from "@/lib/auth";
 import { hasMinimumRole, STAFF_ROLE } from "@/lib/enums";
 
@@ -60,6 +62,12 @@ const NAV_ITEMS = [
     href: "/staff/dashboard/slots",
     label: "Slot Management",
     icon: Clock,
+    minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/analytics",
+    label: "Analytics",
+    icon: BarChart3,
     minRole: STAFF_ROLE.CLINIC_ADMIN,
   },
   {
@@ -126,7 +134,7 @@ export default function StaffDashboardLayout({
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <div className="flex flex-col items-center gap-3">
           <div className="size-10 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading dashboard...</p>
@@ -265,11 +273,11 @@ export default function StaffDashboardLayout({
   );
 
   return (
-    <div className="min-h-screen flex bg-gray-50/50">
+    <div className="min-h-screen flex bg-muted/30">
       {/* Desktop sidebar */}
       <aside
         className={`
-          hidden lg:flex flex-col border-r border-border/60 bg-white
+          hidden lg:flex flex-col border-r border-border/60 bg-background
           transition-all duration-300 ease-in-out shrink-0
           ${collapsed ? "w-[72px]" : "w-[260px]"}
         `}
@@ -278,7 +286,7 @@ export default function StaffDashboardLayout({
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute top-4 -right-3.5 size-7 rounded-full bg-white border border-border shadow-sm flex items-center justify-center hover:bg-muted transition-colors cursor-pointer z-10"
+          className="absolute top-4 -right-3.5 size-7 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-muted transition-colors cursor-pointer z-10"
           style={{ left: collapsed ? "calc(72px - 14px)" : "calc(260px - 14px)" }}
         >
           <ChevronLeft
@@ -298,7 +306,7 @@ export default function StaffDashboardLayout({
       )}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-[260px] bg-white border-r border-border/60
+          fixed inset-y-0 left-0 z-50 w-[260px] bg-background border-r border-border/60
           transform transition-transform duration-300 ease-in-out lg:hidden
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         `}
@@ -309,7 +317,7 @@ export default function StaffDashboardLayout({
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top header bar */}
-        <header className="h-14 border-b border-border/60 bg-white flex items-center justify-between px-4 md:px-6 shrink-0">
+        <header className="h-14 border-b border-border/60 bg-background flex items-center justify-between px-4 md:px-6 shrink-0">
           <div className="flex items-center gap-3">
             {/* Mobile menu button */}
             <Button
@@ -328,6 +336,7 @@ export default function StaffDashboardLayout({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"

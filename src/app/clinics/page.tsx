@@ -12,7 +12,10 @@ import {
   Building2,
   ChevronRight,
   X,
+  Compass,
+  Sparkles,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -93,14 +96,23 @@ function SkeletonCards() {
 // Clinic Card
 // ---------------------------------------------------------------------------
 
-function ClinicCard({ clinic, index }: { clinic: ClinicData; index: number }) {
+function ClinicCard({ clinic, index, isFeatured }: { clinic: ClinicData; index: number; isFeatured?: boolean }) {
   return (
     <div
-      className="group rounded-2xl border bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+      className={`group rounded-2xl border bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative ${isFeatured ? 'ring-1 ring-emerald-200' : ''}`}
       style={{
         animation: `fadeInUp 0.4s ease-out ${index * 0.06}s both`,
       }}
     >
+      {/* Featured Badge */}
+      {isFeatured && (
+        <div className="absolute top-3 right-3 z-10">
+          <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
+            <Sparkles className="size-3" />
+            Featured
+          </span>
+        </div>
+      )}
       {/* Gradient accent strip */}
       <div className="h-2 w-full bg-gradient-to-r from-emerald-400 to-emerald-600" />
 
@@ -125,9 +137,10 @@ function ClinicCard({ clinic, index }: { clinic: ClinicData; index: number }) {
         {/* Address */}
         <div className="flex items-start gap-1.5 text-sm text-gray-600">
           <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
-          <span className="line-clamp-1">
+          <span className="line-clamp-1 flex-1">
             {clinic.streetAddress}, {clinic.city}, {clinic.state} {clinic.zipCode}
           </span>
+          <Compass className="h-3.5 w-3.5 shrink-0 text-emerald-400 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" title="View on map" />
         </div>
 
         {/* Phone */}
@@ -148,7 +161,7 @@ function ClinicCard({ clinic, index }: { clinic: ClinicData; index: number }) {
               <Badge
                 key={s}
                 variant="secondary"
-                className="text-xs font-normal bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/60"
+                className="text-xs font-normal bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:scale-105 transition-transform border-emerald-200/60"
               >
                 {s}
               </Badge>
@@ -190,15 +203,17 @@ function ClinicCard({ clinic, index }: { clinic: ClinicData; index: number }) {
         <div className="pt-2 mt-auto">
           <Link href={`/clinic/${clinic.slug}`}>
             <Button
-              variant="outline"
               size="sm"
-              className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 transition-colors"
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-0 shadow-sm transition-all"
             >
               View Clinic
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </Link>
         </div>
+
+        {/* Subtle gradient overlay at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/60 to-transparent pointer-events-none rounded-b-2xl" />
       </div>
     </div>
   );
@@ -324,11 +339,14 @@ export default function ClinicsDirectoryPage() {
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-3 mb-1">
-            <Building2 className="h-7 w-7 text-emerald-600" />
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              Browse Clinics
-            </h1>
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <div className="flex items-center gap-3">
+              <Building2 className="h-7 w-7 text-emerald-600" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                Browse Clinics
+              </h1>
+            </div>
+            <ThemeToggle />
           </div>
           <p className="text-gray-500 text-sm sm:text-base ml-10">
             Find the right healthcare provider for you
@@ -436,23 +454,30 @@ export default function ClinicsDirectoryPage() {
 
         {/* Empty State */}
         {!loading && !error && filteredClinics.length === 0 && (
-          <div className="text-center py-16">
-            <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">
-              No clinics match your filters
-            </h3>
-            <p className="text-gray-500 text-sm mb-4">
-              Try adjusting your search or filter criteria
-            </p>
-            {hasActiveFilters && (
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-              >
-                Clear all filters
-              </Button>
-            )}
+          <div className="text-center py-16 relative">
+            {/* Subtle dot pattern background */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #059669 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+            <div className="relative">
+              <div className="relative inline-block">
+                <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <Compass className="h-5 w-5 text-emerald-300 absolute -top-1 -right-1" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">
+                No clinics match your filters
+              </h3>
+              <p className="text-gray-500 text-sm mb-4">
+                Try adjusting your search or filter criteria
+              </p>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                >
+                  Clear all filters
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -460,7 +485,7 @@ export default function ClinicsDirectoryPage() {
         {!loading && !error && filteredClinics.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredClinics.map((clinic, index) => (
-              <ClinicCard key={clinic.id} clinic={clinic} index={index} />
+              <ClinicCard key={clinic.id} clinic={clinic} index={index} isFeatured={index < 2} />
             ))}
           </div>
         )}
