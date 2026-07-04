@@ -34,27 +34,96 @@ Stage Summary:
 - **Cache**: In-memory Map-based cache with TTL, prefix/tag deletion, getOrSet factory pattern
 - **Key Files Created**: prisma/schema.prisma, src/lib/auth.ts, src/lib/enums.ts, src/lib/crypto.ts, src/lib/cache.ts, src/lib/constants.ts, src/lib/audit.ts, src/middleware.ts, src/components/providers.tsx
 
-# Project Status Assessment
-- Sprint 1 is COMPLETE. The data layer, security foundation, and auth system are fully operational.
-- The platform uses SQLite (not PostgreSQL as originally specified) due to environment constraints. All Prisma queries work identically.
-- Redis is replaced with an in-memory cache utility. BullMQ will be replaced with a lightweight job queue in Sprint 5.
-- NextAuth v4 is used (not v5) as it was already installed and provides identical JWT functionality.
+---
+Task ID: 2
+Agent: Main Orchestrator
+Task: Sprint 2 — Public Directory Search API, Seed Data, Caching, Distance Calculation, Search UI
+
+Work Log:
+- Created Haversine distance calculation utility (src/lib/geo.ts) with formatDistance, formatCents, getBoundingBox
+- Created comprehensive seed script (prisma/seed.ts) with 6 NYC-area clinics, 6 providers, 5 specialties, 10 services, 3 insurances, 768 slots, 5 reviews, 90 slot templates
+- Ran seed script successfully — all data populated in SQLite
+- Created taxonomy API endpoint (src/app/api/taxonomies/route.ts) with caching
+- Created search API endpoint (src/app/api/search/providers/route.ts) with:
+  - Full filter support (specialty, patientType, insurance, modality, text search, radius)
+  - Bounding box pre-filter + precise Haversine distance calculation
+  - 3 earliest available slots per provider
+  - Cost badge logic (Demo Insurance copay / Uninsured self-pay / Other insurance hidden)
+  - Tie-breaking sort (distance/time → earliest slot → rating → name → random shuffle)
+  - Cursor-based "Load More" pagination
+  - 180-second TTL cache with MD5-hashed cache keys
+  - Batch copay lookup to avoid N+1 queries
+- Fixed critical bug: Number(null) returns 0 not NaN, causing phantom geo filtering (lat=0, lng=0 = Gulf of Guinea)
+- Built complete search UI (src/components/search/search-page.tsx) with:
+  - Sticky header with ClinicBook branding + Staff Login button
+  - Hero section with emerald gradient background
+  - Unified search bar with clear (X) button
+  - Mandatory specialty dropdown (disables search button until selected)
+  - Mandatory Adult/Pediatric toggle group with icons
+  - Optional insurance dropdown (with "Uninsured" option)
+  - Optional modality dropdown (In-Person / Video)
+  - Distance radius slider (1–50 miles) with MapPin icon
+  - Sort preference toggle (Nearest / Earliest) with Navigation/Clock icons
+  - 3-card skeleton loading state
+  - Error state with retry button
+  - Zero-results empty state with smart suggestion chips (Expand radius, Remove insurance, Try all visit types)
+  - Results count with query context ("4 providers found for 'Chen'")
+  - "Clear filters" button
+  - "Load More" button with loading spinner
+  - Sticky footer with branding
+- Built provider card component (src/components/search/provider-card.tsx) with:
+  - 64×64 avatar with emerald-100 background and initials fallback
+  - Provider name with "Dr." prefix + credentials
+  - Clinic name with Building2 icon
+  - Full address with MapPin icon + distance in emerald-600
+  - Star rating display (filled yellow / empty gray) with review count
+  - Cost badge (outline emerald variant) — "$25 Copay", "$200", "Free"
+  - 3 earliest time slots as clickable buttons with date-fns formatting
+  - Modality badges: "In-Clinic" (emerald) or "Video" (blue)
+  - Review snippet with Quote icon, italic, 2-line clamp
+  - Slot clicks navigate to /book?providerId=...&slotId=...
+- Replaced Sprint 1 status page with search page as the main / route
+- Verified via agent-browser: specialty selection, search execution, 4 provider results, modality badges, slot times, cost badges
+- Verified via curl: Demo Insurance shows "Free" / "$25 Copay" badges correctly
+
+Stage Summary:
+- **Seed Data**: 6 clinics (NYC area), 6 providers, 768 slots (14 days), 5 reviews, 5 specialties, 10 services, 3 insurances
+- **Search API**: Full-featured with caching (18ms cache hits), Haversine distance, tie-breaking, cursor pagination, cost badges
+- **Search UI**: Professional medical marketplace search with all spec-required filters, smart suggestions, and responsive design
+- **Bug Fix**: Number(null) → 0 causing phantom geo filtering (fixed by checking param presence before Number())
+
+# Current Project Status Assessment
+- Sprint 1 (Data Layer + Auth) and Sprint 2 (Public Search) are COMPLETE
+- The main page (/) is now a fully functional medical provider search
+- All 4 Family Medicine providers display correctly with slots, ratings, reviews, and cost badges
+- Demo Insurance integration verified: copay badges show "$25 Copay" or "Free"
+- In-memory cache working: search results cached at 180s TTL, taxonomy data at 3600s TTL
+- SystemConfig singleton row now exists (created by seed script)
 
 # Completed Modifications
-- All Sprint 1 deliverables implemented and verified
+- prisma/seed.ts: Comprehensive demo data generator (idempotent, FK-safe deletion order)
+- src/lib/geo.ts: Haversine distance, bounding box, formatDistance, formatCents
+- src/app/api/taxonomies/route.ts: Taxonomy lookup with caching
+- src/app/api/search/providers/route.ts: Full search endpoint
+- src/components/search/search-page.tsx: Complete search UI with all filters
+- src/components/search/provider-card.tsx: Provider result card with all spec-required elements
+- src/app/page.tsx: Updated to render SearchPage
 - Lint: 0 errors, 0 warnings
-- Dev server: HTTP 200 on /, HTTP 200 on /api/auth/session
-- Agent-browser verified: page renders with proper structure (ClinicBook header, Sprint 1 status, model grid, next steps)
+- Dev server: All routes return 200, no runtime errors
 
 # Unresolved Issues / Risks
-1. The "middleware" file convention shows a deprecation warning in Next.js 16 (suggests "proxy" instead). Still functional.
-2. No SystemConfig singleton row exists yet — needs to be created by seed script in Sprint 7.
-3. Stripe SDK not yet installed — planned for Sprint 3.
-4. No staff user accounts exist yet — seed script will create them.
+1. The "middleware" deprecation warning in Next.js 16 still present (functional, cosmetic only)
+2. Geolocation not yet implemented in the UI — users must manually enter coordinates for distance-based sorting
+3. No text search tested yet (the unified smart search bar)
+4. "Load More" not testable yet (only 4 results for Family Medicine, need more data or broader search)
+5. The /book route doesn't exist yet (Sprint 3) — slot clicks will 404
+6. Stripe SDK not installed — needed for Sprint 3
+7. No staff user accounts exist — needed for Sprint 4
 
-# Priority for Sprint 2
-1. Public Directory Search API (search endpoint with filters)
-2. Redis/in-memory cache layer for search results
-3. Haversine distance calculation utility
-4. Provider card data assembly API
-5. Search page UI with unified search bar, filters, and load-more pagination
+# Priority for Sprint 3
+1. The 4-Step Booking Wizard (/book route) — Client Component with step state
+2. Stripe SDK integration + API keys
+3. Two-Phase Locking (SlotLock creation + P2002 race condition handling)
+4. Appointment creation API endpoint
+5. Token generation for confirmation
+6. Confirmation page with secure link
