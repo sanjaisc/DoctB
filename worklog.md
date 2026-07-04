@@ -373,3 +373,270 @@ Stage Summary:
 5. Patient management popup (contact editing, internal notes, insurance info)
 6. Slot management (block ranges, mark BOOKED_EXTERNALLY)
 7. Seed script update: create staff user accounts with hashed passwords for each clinic
+
+---
+Task ID: 5
+Agent: Calendar Agent
+Task: Build Staff Calendar View (API + Page)
+
+Work Log:
+- Read worklog.md, Prisma schema, auth config, enums, dashboard layout, calendar/select/popover shadcn components
+- Created `/src/app/api/staff/calendar/route.ts`:
+  - GET handler with `date` (YYYY-MM-DD) and optional `providerId` query params
+  - Auth via `getServerSession(authOptions)`, filters by `session.user.clinicId`
+  - Fetches slots with provider, appointment (with service) includes
+  - Groups slots by hour (7–18) in `slotsByHour` map
+  - Returns provider list for filter dropdown, summary stats (booked/available/blocked/checkedIn)
+  - Parallel queries: slots + providers via `Promise.all`
+- Created `/src/app/staff/dashboard/calendar/page.tsx` (use client):
+  - Date navigation: prev/next day arrows, "Today" button, shadcn Calendar in Popover for date picker
+  - Provider filter: shadcn Select dropdown (shown only when >1 provider)
+  - 4 summary cards at top: Booked (emerald), Checked In (blue), Available (amber), Blocked (gray) — gradient backgrounds, icon circles, bold numbers
+  - Time grid: 7am–7pm rows with alternating `bg-muted/20` backgrounds
+  - Each slot rendered as a card:
+    - Available: emerald left border, green bg, "Available" pill badge, hover shadow
+    - Booked with appointment: emerald/blue/red/amber/gray left border by status, shows patient name, time range, service/reason, phone, modality badge (In-Clinic/Video), status badge
+    - Blocked/Closed: gray bg, strikethrough time, "Blocked"/"Closed" badge
+    - Locked: amber bg, "Locked" badge with Clock icon
+    - Booked externally: purple left border, "External" badge
+  - Current time indicator: red dot + horizontal line, updates every 60s, auto-scrolls grid to current hour on initial load
+  - Loading state: skeleton grid with header, summary cards, and 12 row placeholders
+  - Error state: red-tinted card with AlertCircle icon and "Try Again" button
+  - Footer legend: color-coded legend for all slot types
+  - Custom emerald scrollbar styling in `globals.css`
+- Lint: 0 errors in new files (pre-existing error in layout.tsx from Sprint 4 agent — not introduced by this task)
+- Dev server: compiles successfully
+
+Stage Summary:
+- **Calendar API**: `/api/staff/calendar` — returns slots grouped by hour, provider list, summary stats, formatted date
+- **Calendar Page**: `/staff/dashboard/calendar` — professional time-grid calendar with date picker, provider filter, summary cards, status-colored slot cards, current time indicator, loading/error states
+- **Styling**: Emerald color scheme throughout, gradient summary cards, subtle alternating row backgrounds, custom scrollbar, smooth hover transitions
+- **New Files**: `src/app/api/staff/calendar/route.ts`, `src/app/staff/dashboard/calendar/page.tsx`
+- **Modified Files**: `src/app/globals.css` (added custom scrollbar CSS)
+
+---
+Task ID: 6
+Agent: Manual Booking Agent
+Task: Build Manual Booking Flow (API + Page)
+
+Work Log:
+- Read worklog.md, Prisma schema, auth config, enums, constants, crypto, audit, existing appointments API, staff dashboard layout, booking page for patterns
+- Created `/src/app/api/staff/book/route.ts`:
+  - GET handler: auth via `getServerSession(authOptions)`, requires `session.user.clinicId`
+  - GET returns: providers (with providerServices→service), services (active), insurances (active), and optionally slots (when providerId+date query params provided)
+  - Slots filtered by providerId, clinicId, status=AVAILABLE, and date range (startOfDay to endOfDay)
+  - POST handler: validates required fields (slotId, patientName, patientDob, patientPhone, patientEmail, patientType, reasonForVisit, serviceId)
+  - Validates patientType is ADULT or PEDIATRIC; pediatric requires guardianName+guardianRelation
+  - Validates patientDob is a valid ISO date
+  - Atomic transaction: validates slot belongs to staff's clinic, validates slot is AVAILABLE, validates service is offered by provider
+  - Creates Appointment (paymentMethod=CASH_AT_DESK, paymentStatus=PENDING, status=BOOKED, depositCents=0, selfPayCents from service)
+  - Creates AppointmentLedger (type=DEPOSIT_AUTH, processedBy=staffId, description="Manual booking — cash payment pending at desk")
+  - Updates slot status to BOOKED
+  - Creates InternalNote if internalNotes provided (authorId=staffId)
+  - Outside transaction: generates secure token (generateSecureToken + hashToken), creates Token with purpose=MANAGE
+  - Creates audit log (BOOKING_CREATED), invalidates cache (slots:, search:)
+  - Returns appointment data + raw token for patient management link
+- Created `/src/app/staff/dashboard/book/page.tsx` ("use client"):
+  - 5-step wizard: (1) Provider & Slot, (2) Patient Info, (3) Visit Details, (4) Review, (5) Confirmation
+  - Step indicator with emerald progress track line, pulsing active step, step labels
+  - Step 1: Provider grid (2-column, avatar with Stethoscope icon, credentials, service count), Popover+Calendar date picker, time slot grid (3-4 per row) grouped by modality (In-Person green, Video blue)
+  - Step 2: Patient details form with Adult/Pediatric toggle, name/DOB/phone/email fields with icons, smooth expand/collapse guardian fields (maxHeight+opacity CSS transition 300ms), guardian relationship select dropdown, selected slot summary card
+  - Step 3: Service selection (auto-selects if only one), insurance dropdown with Demo badge, reason for visit textarea, internal notes textarea (muted background, labeled staff-only)
+  - Step 4: Review cards (Appointment, Patient Info, Visit Details) with emerald icon circles, cost display, internal notes section
+  - Step 5: Success checkmark, appointment details card, patient management link with copy button, show/hide token toggle (eye/eye-off), "Book Another Appointment" button
+  - All cards: shadow-sm, rounded-xl, emerald color scheme
+  - Smooth transitions: animate-in fade-in slide-in-from-bottom-1 duration-300
+  - Mobile responsive: grid cols adjust, stacked layouts
+  - Loading states: initial data loading spinner, slot loading spinner
+  - Error states: red banner with AlertCircle, dismissible
+  - Navigation: Back/Continue buttons with emerald styling
+
+Stage Summary:
+- **API Endpoint**: `/api/staff/book` — GET returns providers/services/insurances/slots, POST creates manual booking with Appointment+Ledger+Token+InternalNote
+- **Manual Booking Page**: `/staff/dashboard/book` — 5-step wizard for staff phone bookings with professional emerald UI
+- **Key Features**: Provider grid, Calendar date picker, modality-grouped time slots, pediatric guardian expand/collapse, service auto-select, insurance selection, internal notes, review cards, copyable management token
+- **Security**: Slot validated against staff's clinic, AVAILABLE status check, service-provider validation, CASH_AT_DESK payment enforcement
+- **New Files**: `src/app/api/staff/book/route.ts`, `src/app/staff/dashboard/book/page.tsx`
+- **Lint**: 0 errors in new files (pre-existing error in layout.tsx is not from this task)
+
+---
+Task ID: 7
+Agent: Appointments Agent
+Task: Build Appointments Management + Slot Management (APIs + Pages)
+
+Work Log:
+- Read worklog.md for project context, Prisma schema for data models, auth/enums/audit for patterns, existing staff APIs and layout for conventions
+- Created `/src/app/api/staff/appointments/route.ts` (GET):
+  - Auth via `getServerSession(authOptions)`, clinic access control (SYSTEM_MANAGER can specify clinicId)
+  - Query params: status (comma-separated), dateFrom, dateTo, search (patient name/email/phone), providerId, page, limit
+  - Default: today's appointments when no date range specified
+  - Returns paginated results with provider, service, slot, insurance includes
+  - Prisma full-text search via `contains` on patientName/patientEmail/patientPhone
+- Created `/src/app/api/staff/appointments/[id]/route.ts` (GET + PATCH):
+  - GET: Full appointment detail with provider, service, specialty, slot, insurance, clinic, ledger, tokens, notes (with author), and computed `validTransitions` from `APPOINTMENT_TRANSITIONS`
+  - PATCH: State machine status transitions using `canTransitionTo()` validation
+    - Allowed: CHECKED_IN, COMPLETED, CANCELLED, NO_SHOW
+    - On CANCELLED: sets cancellationReason, cancelledAt, cancelledBy; releases slot to AVAILABLE
+    - On NO_SHOW: keeps slot BOOKED, only marks appointment
+    - Audit logging via `createAuditLog()` with appropriate AUDIT_ACTIONS
+- Created `/src/app/api/staff/appointments/[id]/notes/route.ts` (GET + POST):
+  - GET: Returns all internal notes ordered by createdAt, with author info
+  - POST: Creates note with authorId from session, content validation (trimmed, non-empty)
+  - Clinic access verification on both endpoints
+- Created `/src/app/api/staff/slots/route.ts` (GET + PATCH):
+  - GET: Lists slots for provider in date range, with optional status filter, includes provider and appointment
+  - PATCH: Batch slot status updates (BLOCK/UNBLOCK/BOOKED_EXTERNALLY)
+    - BLOCK: only AVAILABLE → BLOCKED
+    - UNBLOCK: only BLOCKED → AVAILABLE
+    - BOOKED_EXTERNALLY: AVAILABLE/BLOCKED → BOOKED_EXTERNALLY
+    - Skips slots with invalid transitions, returns updatedCount + skipped list
+    - Per-slot audit logging
+- Created `/src/app/staff/dashboard/appointments/page.tsx` ("use client"):
+  - Filter bar: status tabs (All/Booked/Checked In/Completed/Cancelled/No Show), date range inputs, search box with clear button, provider dropdown
+  - Table with columns: Time (formatted with Clock icon), Patient (avatar + name + email), Provider, Service, Modality (In-Clinic/Video badges), Status (color-coded), Actions (dropdown)
+  - Action dropdown: View Details, Check In, Complete, Cancel, No Show (contextual based on current status)
+  - Detail dialog (max-w-2xl, scrollable):
+    - Status transition buttons (only valid transitions shown, color-coded)
+    - Patient info card (avatar, name, phone, email, DOB, guardian info, pediatric badge)
+    - Appointment info card (provider, specialty, modality, intake status, reason)
+    - Insurance section (name, demo badge, deposit/self-pay amounts)
+    - Financial/ledger section (payment method, status, deposit, self-pay, ledger type/amount)
+    - Patient management tokens list (purpose, active/expired/consumed status, expiry date)
+    - Cancellation details (if applicable)
+    - Internal notes section: chat-bubble style (author avatar, name, timestamp, content), add note form with Ctrl+Enter support
+  - Pagination at bottom (page buttons, prev/next, total pages)
+  - Empty state, error state with retry, skeleton loading state
+  - Single useEffect with ref-based filter change detection for proper page reset
+- Created `/src/app/staff/dashboard/slots/page.tsx` ("use client"):
+  - Provider selector dropdown (auto-fetched from search API, auto-selects first)
+  - Date range picker (from/to) and status filter dropdown
+  - Slots grouped by date with collapsible date headers (chevron toggle)
+  - Each date group shows: date label, "Today" badge, slot count, status summary badges
+  - Card-based grid layout (1-6 columns responsive) for slots
+  - Each slot card: time, modality badge, status badge, appointment info, selection checkbox
+  - Multi-select: click to toggle, "Select All Available" / "Deselect All" toggle
+  - Action bar (appears on selection): Block Selected, Unblock Selected, Mark Externally Booked
+  - Confirmation dialog with warning icon, contextual action description, action buttons
+  - Loading skeleton, error state, empty states
+- Lint: 0 errors, 0 warnings in new files (pre-existing error in layout.tsx from previous task is not introduced by this task)
+- Dev server: compiles successfully, all routes return 200
+
+Stage Summary:
+- **4 API Endpoints**: Appointments list (GET), Appointment detail/status (GET/PATCH), Notes (GET/POST), Slot management (GET/PATCH)
+- **Appointments Page**: `/staff/dashboard/appointments` — filter bar, paginated table, action dropdown, full-featured detail dialog with patient info, insurance, financials, tokens, chat-style notes
+- **Slot Management Page**: `/staff/dashboard/slots` — provider selector, date range, card-grid slots grouped by date, multi-select with batch actions, confirmation dialogs
+- **State Machine**: Enforced `canTransitionTo()` validation on all status transitions, slot release on cancellation
+- **New Files**: `src/app/api/staff/appointments/route.ts`, `src/app/api/staff/appointments/[id]/route.ts`, `src/app/api/staff/appointments/[id]/notes/route.ts`, `src/app/api/staff/slots/route.ts`, `src/app/staff/dashboard/appointments/page.tsx`, `src/app/staff/dashboard/slots/page.tsx`
+
+---
+Task ID: 8
+Agent: Main Orchestrator
+Task: Sprint 4 — Staff Portal Complete Build (Foundation + Integration + QA)
+
+Work Log:
+- Reviewed worklog.md to understand project state (Sprint 1-3 complete, Sprint 4 pending)
+- Ran `bun run lint` — 0 errors on existing codebase
+- QA tested via agent-browser: search page (4 Family Medicine results), slot buttons, provider cards — all working
+- Updated Staff Login button in search-page.tsx to use Link to `/staff/login`
+- Updated `prisma/seed.ts`:
+  - Added proper deletion order for all new tables (AuditLog, InternalNote, Review, AppointmentLedger, Token, SlotLock, WaitlistEntry, ClinicClosure, User)
+  - Created 13 staff users: 1 SYSTEM_MANAGER + 6 CLINIC_ADMIN + 6 CLINIC_RECEPTION (one per clinic)
+  - Fixed email domain strategy: uses clinic slug (e.g., `admin@downtownmedicalgroup.clinicbook.com`)
+- Re-seeded database successfully (768 slots, 13 staff users)
+- Created Staff Login page (`/src/app/staff/login/page.tsx`):
+  - Professional emerald gradient design with ClinicBook branding
+  - Email/password form with show/hide toggle, error state, loading state
+  - Demo credentials section showing 3 account types
+  - "Back to ClinicBook" link
+- Created Dashboard Layout (`/src/app/staff/dashboard/layout.tsx`):
+  - Collapsible sidebar (260px ↔ 72px) with animated toggle
+  - Mobile responsive: slide-out overlay with backdrop
+  - Navigation items with active state (emerald left indicator), tooltips in collapsed mode
+  - Role-based nav filtering (CLINIC_RECEPTION sees fewer items)
+  - Top header bar with Staff Portal badge, notification bell, user avatar
+  - User section with avatar, name, role badge, sign out button
+  - Fixed React 19 lint issues: no setState-in-effect (used handleNavClick instead)
+- Created Dashboard API (`/src/app/api/staff/dashboard/route.ts`):
+  - Returns clinic info, today's date, stats (appointments, slots, utilization), appointment lists
+  - Parallel Prisma queries for performance
+  - System manager support with clinicId query param
+- Created Dashboard Overview Page (`/src/app/staff/dashboard/page.tsx`):
+  - 4 gradient stat cards (Today's Appointments, Checked In, Upcoming, Total Bookings)
+  - Today's Schedule list with appointment rows (time, patient, provider, modality badges)
+  - Quick Actions section (New Booking, View Calendar, Manage Slots)
+  - Performance panel with utilization bar, completed/cancelled/no-show/available stats
+  - Empty state, loading skeleton, error with retry
+- Created Settings Page (`/src/app/staff/dashboard/settings/page.tsx`):
+  - Clinic Information card (address, phone, email, website)
+  - Financial Configuration (deposits, self-pay rate, cancellation lead time)
+  - Account Info (name, email, role)
+  - System Manager graceful fallback
+- Created Clinic Info API (`/src/app/api/staff/clinic-info/route.ts`)
+- Launched 3 parallel subagents for complex features:
+  - Agent 5 (Calendar): Calendar API + time-grid page with date picker, provider filter, current time indicator
+  - Agent 6 (Manual Booking): 5-step booking wizard API + page with provider grid, slot selection, patient form
+  - Agent 7 (Appointments): 4 API endpoints + appointments table + slot management page
+- Fixed React 19 lint errors: ref-during-render, setState-in-effect
+- Full QA via agent-browser:
+  - Login: filled credentials → redirected to /staff/dashboard ✓
+  - Dashboard: stat cards, quick actions, schedule list ✓
+  - Calendar: date picker, provider filter, time grid ✓
+  - Manual Booking: provider selection, date picker ✓
+  - Appointments: filter tabs, search, table headers ✓
+  - Slot Management: provider selector, date range ✓
+  - Settings: clinic info, financial config, account info ✓
+- Final lint: 0 errors, 0 warnings
+
+Stage Summary:
+- **Sprint 4 COMPLETE**: Full staff portal with 8 pages and 8 API endpoints
+- **Pages Created**: Staff Login, Dashboard Overview, Calendar, Manual Booking, Appointments, Slot Management, Settings
+- **API Endpoints**: Dashboard stats, Calendar slots, Manual booking (GET+POST), Appointments (list+detail+status), Notes, Slot management, Clinic info
+- **Authentication**: NextAuth v4 working end-to-end, middleware protection, role-based nav
+- **Seed Data**: 13 staff accounts with bcrypt-hashed passwords
+- **Demo Credentials**: admin@downtownmedicalgroup.clinicbook.com / admin123, reception@... / reception123, sysadmin@clinicbook.com / sysadmin123
+- **QA Screenshots**: qa-login.png, qa-dashboard-loaded.png, qa-calendar.png, qa-manual-booking.png, qa-manual-booking-step2.png, qa-appointments.png, qa-slots.png
+
+# Current Project Status Assessment
+- Sprint 1 (Data Layer + Auth): ✅ COMPLETE
+- Sprint 2 (Public Search): ✅ COMPLETE
+- Sprint 3 (Booking Wizard + Two-Phase Locking): ✅ COMPLETE
+- Sprint 3 Styling Enhancement: ✅ COMPLETE
+- Sprint 4 (Staff Portal): ✅ COMPLETE
+  - Staff Login with demo credentials
+  - Dashboard Overview with stats, schedule, quick actions
+  - Calendar View with time grid, date picker, provider filter
+  - Manual Booking 5-step wizard for phone bookings
+  - Appointments Management with status transitions, internal notes
+  - Slot Management with batch block/unblock/externally-booked
+  - Settings page with clinic info and financial config
+  - Role-based navigation (Reception < Admin < System Manager)
+- The platform now has a complete end-to-end flow: Search → Book → Staff Manage
+
+# Completed Modifications (This Session)
+- `prisma/seed.ts`: Added 13 staff user accounts, fixed deletion order, improved email domains
+- `src/app/staff/login/page.tsx`: New — professional login page
+- `src/app/staff/dashboard/layout.tsx`: New — collapsible sidebar, mobile responsive, role-based nav
+- `src/app/staff/dashboard/page.tsx`: New — dashboard overview with stats and schedule
+- `src/app/staff/dashboard/settings/page.tsx`: New — clinic settings and account info
+- `src/app/api/staff/dashboard/route.ts`: New — dashboard stats API
+- `src/app/api/staff/clinic-info/route.ts`: New — clinic info API
+- `src/components/search/search-page.tsx`: Updated Staff Login button to use Link
+- Subagent-created files: calendar API+page, manual booking API+page, appointments APIs+page, slots API+page
+- Lint: 0 errors, 0 warnings
+- Dev server: all routes return 200, no runtime errors
+
+# Unresolved Issues / Risks
+1. The "middleware" deprecation warning in Next.js 16 (functional, cosmetic only)
+2. Geolocation distance sorting requires user to grant browser location permission
+3. Today is Saturday — no template-generated slots (Mon-Fri only), making the dashboard look empty on weekends
+4. The /manage/[token] route doesn't exist yet (Sprint 6) — management token links will 404
+5. Stripe SDK not installed — all bookings use MANUAL_WAIVER or CASH_AT_DESK
+6. No email sending configured — confirmation emails are not sent
+7. The completed appointments from seed data are on past dates (need to check exact dates)
+
+# Priority Recommendations for Next Phase (Sprint 5: Background Processor)
+1. Slot generation background job (from SlotTemplates → Slots for the 90-day window)
+2. Expired lock cleanup job (sweep SlotLock where expiresAt < now)
+3. Waitlist processing engine (cancel → offer to waitlisted patients)
+4. Auto-cancel no-show appointments (mark as NO_SHOW after grace period)
+5. Add Saturday templates to seed data for better demo experience

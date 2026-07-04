@@ -9,7 +9,9 @@ import {
   PROVIDER_STATUS,
   SLOT_STATUS,
   SLOT_MODALITY,
+  STAFF_ROLE,
 } from '../src/lib/enums';
+import { hashPassword } from '../src/lib/crypto';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -60,8 +62,16 @@ async function main() {
 
   console.log('0️⃣  Cleaning existing data for idempotent re-run...');
   // Delete in reverse dependency order to avoid FK violations (sequential)
+  await db.auditLog.deleteMany();
+  await db.internalNote.deleteMany();
   await db.review.deleteMany();
+  await db.appointmentLedger.deleteMany();
+  await db.token.deleteMany();
+  await db.slotLock.deleteMany();
   await db.appointment.deleteMany();
+  await db.waitlistEntry.deleteMany();
+  await db.clinicClosure.deleteMany();
+  await db.user.deleteMany();
   await db.slot.deleteMany();
   await db.slotTemplate.deleteMany();
   await db.providerService.deleteMany();
@@ -749,6 +759,61 @@ async function main() {
   await db.slotTemplate.createMany({ data: slotTemplateRows });
   console.log(`   ✅ Created ${slotTemplateRows.length} SlotTemplate entries (3 templates × 5 weekdays × 6 providers)\n`);
 
+  // ── 15. Staff User Accounts ─────────────────────────────────────────────
+
+  console.log('1️⃣5️⃣  Creating Staff User Accounts...');
+
+  // System Manager (no clinic)
+  const sysMgrHash = await hashPassword('sysadmin123');
+  const sysMgr = await db.user.create({
+    data: {
+      email: 'sysadmin@clinicbook.com',
+      name: 'System Manager',
+      passwordHash: sysMgrHash,
+      role: STAFF_ROLE.SYSTEM_MANAGER,
+      clinicId: null,
+      isActive: true,
+    },
+  });
+  console.log(`   ✅ ${sysMgr.email} (${sysMgr.role})`);
+
+  // One admin + one receptionist per clinic
+  const staffCount = { admin: 0, reception: 0 };
+  for (const clinicInfo of clinicsData) {
+    const clinicRec = await db.clinic.findFirst({ where: { slug: clinicInfo.slug }, select: { id: true, name: true } });
+    if (!clinicRec) continue;
+    const clinicDomain = clinicInfo.slug.replace(/-/g, '');
+
+    const adminHash = await hashPassword('admin123');
+    await db.user.create({
+      data: {
+        email: `admin@${clinicDomain}.clinicbook.com`,
+        name: `${clinicRec.name} Admin`,
+        passwordHash: adminHash,
+        role: STAFF_ROLE.CLINIC_ADMIN,
+        clinicId: clinicRec.id,
+        isActive: true,
+      },
+    });
+    staffCount.admin++;
+    console.log(`   ✅ admin@${clinicDomain}.clinicbook.com (CLINIC_ADMIN) → ${clinicRec.name}`);
+
+    const receptionHash = await hashPassword('reception123');
+    await db.user.create({
+      data: {
+        email: `reception@${clinicDomain}.clinicbook.com`,
+        name: `${clinicRec.name} Reception`,
+        passwordHash: receptionHash,
+        role: STAFF_ROLE.CLINIC_RECEPTION,
+        clinicId: clinicRec.id,
+        isActive: true,
+      },
+    });
+    staffCount.reception++;
+    console.log(`   ✅ reception@${clinicDomain}.clinicbook.com (CLINIC_RECEPTION) → ${clinicRec.name}`);
+  }
+  console.log(`   Total staff: 1 system manager + ${staffCount.admin} admins + ${staffCount.reception} receptionists\n`);
+
   // ── Done ───────────────────────────────────────────────────────────────────
 
   console.log('═══════════════════════════════════════════════════════════════');
@@ -768,6 +833,7 @@ async function main() {
   console.log(`   • Appointments (completed): ${reviewData.length}`);
   console.log(`   • Reviews: ${reviewData.length}`);
   console.log(`   • SlotTemplates: ${slotTemplateRows.length}`);
+  console.log(`   • Staff Users: ${1 + staffCount.admin + staffCount.reception}`);
   console.log('═══════════════════════════════════════════════════════════════');
 }
 

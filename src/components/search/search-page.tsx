@@ -357,9 +357,11 @@ export function SearchPage() {
               ClinicBook
             </span>
           </div>
-          <Button variant="outline" size="sm" className="cursor-pointer">
-            Staff Login
-          </Button>
+          <Link href="/staff/login">
+            <Button variant="outline" size="sm" className="cursor-pointer">
+              Staff Login
+            </Button>
+          </Link>
         </div>
       </header>
 
