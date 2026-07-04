@@ -14,6 +14,8 @@ import {
   Loader2,
   X,
   Phone,
+  LocateFixed,
+  LocateOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +102,8 @@ interface SearchParams {
   insuranceId?: string;
   modality?: string;
   radius: number;
+  lat?: number;
+  lng?: number;
   sort: string;
   cursor: number;
   size: number;
@@ -113,6 +117,8 @@ function buildFetchUrl(params: SearchParams): string {
   if (params.insuranceId) sp.set("insuranceId", params.insuranceId);
   if (params.modality) sp.set("modality", params.modality);
   sp.set("radius", String(params.radius));
+  if (params.lat != null) sp.set("lat", String(params.lat));
+  if (params.lng != null) sp.set("lng", String(params.lng));
   sp.set("sort", params.sort);
   sp.set("cursor", String(params.cursor));
   sp.set("size", String(params.size));
@@ -136,6 +142,9 @@ export function SearchPage() {
   const [modality, setModality] = useState<"IN_PERSON" | "VIDEO" | "">("");
   const [radius, setRadius] = useState(5);
   const [sort, setSort] = useState<"distance" | "time">("distance");
+  const [userLat, setUserLat] = useState<number | null>(null);
+  const [userLng, setUserLng] = useState<number | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
 
   // ---- Results State ----
   const [results, setResults] = useState<ProviderResult[]>([]);
@@ -164,6 +173,19 @@ export function SearchPage() {
       }
     }
     fetchTaxonomies();
+
+    // Attempt browser geolocation (non-blocking)
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLat(pos.coords.latitude);
+          setUserLng(pos.coords.longitude);
+          setGeoStatus("granted");
+        },
+        () => setGeoStatus("denied"),
+        { timeout: 5000 }
+      );
+    }
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -178,12 +200,14 @@ export function SearchPage() {
         insuranceId: (overrides?.insuranceId ?? insuranceId) || undefined,
         modality: (overrides?.modality ?? modality) || undefined,
         radius: overrides?.radius ?? radius,
+        lat: userLat ?? undefined,
+        lng: userLng ?? undefined,
         sort: overrides?.sort ?? sort,
         cursor: overrides?.cursor ?? 0,
         size: 10,
       };
     },
-    [query, specialtyId, patientType, insuranceId, modality, radius, sort]
+    [query, specialtyId, patientType, insuranceId, modality, radius, sort, userLat, userLng]
   );
 
   // ---------------------------------------------------------------------------
@@ -432,9 +456,13 @@ export function SearchPage() {
             <div className="flex items-center gap-4 flex-wrap">
               {/* Radius Slider */}
               <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-                <MapPin className="size-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[50px]">
-                  {radius} miles
+                {geoStatus === "granted" ? (
+                  <LocateFixed className="size-4 text-emerald-600 shrink-0" title="Location detected" />
+                ) : (
+                  <MapPin className="size-4 text-muted-foreground shrink-0" title="Allow location for distance sorting" />
+                )}
+                <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[45px]">
+                  {radius} mi
                 </span>
                 <Slider
                   value={[radius]}

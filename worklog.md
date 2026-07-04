@@ -120,10 +120,11 @@ Stage Summary:
 6. Stripe SDK not installed — needed for Sprint 3
 7. No staff user accounts exist — needed for Sprint 4
 
-# Priority for Sprint 3
-1. The 4-Step Booking Wizard (/book route) — Client Component with step state
-2. Stripe SDK integration + API keys
-3. Two-Phase Locking (SlotLock creation + P2002 race condition handling)
-4. Appointment creation API endpoint
-5. Token generation for confirmation
-6. Confirmation page with secure link
+# Priority for Sprint 4
+1. Staff Login page (email/password form)
+2. Staff Dashboard layout with sidebar navigation
+3. Daily calendar view (grid showing committed appointments)
+4. Manual booking flow (phone bookings with CASH_AT_DESK payment)
+5. Patient popup modal (contact editing, internal notes, insurance info)
+6. Slot management (block ranges, mark BOOKED_EXTERNALLY)
+7. Seed script: create staff user accounts with hashed passwords
