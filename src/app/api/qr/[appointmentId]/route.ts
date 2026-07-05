@@ -18,14 +18,21 @@ export async function GET(
   // ---- Resolve params ----
   const { appointmentId } = await params;
 
-  // ---- Fetch appointment ----
+  // ---- Fetch appointment and verify clinic access ----
   const appointment = await db.appointment.findUnique({
     where: { id: appointmentId },
-    select: { id: true, patientName: true },
+    select: { id: true, patientName: true, clinicId: true },
   });
 
   if (!appointment) {
     return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
+  }
+
+  // Non-SYSTEM_MANAGER staff can only access their own clinic's appointments
+  const userRole = session.user.role;
+  const userClinicId = session.user.clinicId;
+  if (userRole !== "SYSTEM_MANAGER" && userClinicId && appointment.clinicId !== userClinicId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // ---- Find valid MANAGE token ----

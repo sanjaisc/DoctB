@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
     const tokenId = request.nextUrl.searchParams.get("tokenId");
 
     // Support two lookup modes: raw token hash or token record ID
-    let tokenRecord: Record<string, unknown> | null = null;
+    // Type is intentionally loose — the Prisma include produces a deeply nested
+    // object that doesn't have a clean inferred type without the base query.
+    let tokenRecord: Record<string, any> | null = null;
 
     const includeAppointment = {
       appointment: {

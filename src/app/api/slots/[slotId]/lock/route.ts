@@ -5,6 +5,7 @@ import { createAuditLog, AUDIT_ACTIONS } from "@/lib/audit";
 import { cache, CacheKeys } from "@/lib/cache";
 import { DEFAULT_LOCK_TTL_SECONDS } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
+import { timingSafeEqual } from "crypto";
 
 // =============================================================================
 // Types
@@ -185,7 +186,10 @@ export async function DELETE(
         return "NOT_FOUND" as const;
       }
 
-      if (lock.lockKey !== lockKey) {
+      // Timing-safe comparison to prevent lockKey guessing attacks
+      const keyA = Buffer.from(lock.lockKey, "utf-8");
+      const keyB = Buffer.from(lockKey, "utf-8");
+      if (keyA.length !== keyB.length || !timingSafeEqual(keyA, keyB)) {
         return "WRONG_KEY" as const;
       }
 

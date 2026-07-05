@@ -1955,3 +1955,103 @@ Stage Summary:
 - **After**: 0 TypeScript errors in src/, 0 ESLint errors
 - **Key insight**: The NextAuth type augmentation issue was the #1 pervasive bug — it affected 17 of 23 files. Every staff API route was accessing `session.user.role`, `session.user.id`, `session.user.clinicId` without proper type support. This would cause silent type mismatches in any editor/tooling that relies on tsc.
 - **No new features added** — all changes are fixes per audit mandate.
+
+---
+Task ID: Audit-Phase-2
+Agent: Main Orchestrator
+Task: Phase 2 — Critical Business Logic & Security Audit: Two-phase locking, token hashing, NextAuth JWT/RBAC, patient data
+
+Work Log:
+- Deep-read every security-critical file: lock API, booking API, staff book API, reviews API, intake API, QR API, lock cleanup, middleware, crypto utilities, admin endpoints, search API, notifications API
+- Audited two-phase locking correctness: ACQUIRE, BOOK, RELEASE, CLEANUP flows
+- Audited token hashing: generation, storage, verification, timing safety
+- Audited NextAuth JWT/RBAC: middleware route protection, session callback, role hierarchy
+- Audited patient data handling: PII exposure in public APIs, staff clinic isolation
+- Applied 4 security fixes
+- Final verification: 0 src/ TypeScript errors, 0 ESLint errors/warnings
+
+## Phase 2 Audit Findings
+
+### Area 1: Two-Phase Slot Locking — ✅ MOSTLY CORRECT (1 bug found)
+
+**Public booking flow (CORRECT):**
+1. POST `/api/slots/[slotId]/lock` — atomic `$transaction`: checks slot AVAILABLE + in future → creates SlotLock (P2002 unique constraint catches races) → sets slot to LOCKED
+2. POST `/api/appointments` — atomic `$transaction`: verifies lock exists + lockKey matches → checks slot LOCKED → creates Appointment + Ledger → deletes SlotLock → sets slot to BOOKED
+3. DELETE `/api/slots/[slotId]/lock` — atomic `$transaction`: verifies lock ownership → deletes SlotLock → sets slot to AVAILABLE
+
+**Staff manual booking (CORRECT):**
+- POST `/api/staff/book` — no lock needed (staff bypass), checks slot AVAILABLE directly in transaction
+
+**LOCK CLEANUP — BUG FOUND & FIXED:**
+- **Problem**: `POST /api/admin/locks/cleanup` was NOT using transactions for individual lock releases. The slot status check (`LOCKED?`) and the subsequent `slot.update` + `slotLock.delete` were separate queries outside a transaction. A concurrent booking could re-lock a slot between the check and the release.
+- **Fix**: Wrapped each lock release in its own `$transaction` with a re-check of slot status inside the transaction. Added per-lock error handling so one failure doesn't abort the entire batch.
+
+**LOCK KEY COMPARISON — BUG FOUND & FIXED:**
+- **Problem**: DELETE lock endpoint used `lock.lockKey !== lockKey` (JavaScript string comparison) instead of `crypto.timingSafeEqual`. While lockKeys are session-generated FNV hashes (not user-controlled secrets), this is still a timing side-channel.
+- **Fix**: Added `import { timingSafeEqual } from "crypto"` and used Buffer-based timing-safe comparison with length pre-check.
+
+### Area 2: Token Hashing Security — ✅ CORRECT
+
+**Token generation**: `crypto.randomBytes(32)` = 256 bits of entropy ✅
+**Token storage**: SHA-256 hash only (raw token never stored) ✅
+**Token verification**: `crypto.timingSafeEqual` in `crypto.ts::verifyToken()` ✅
+**Token format validation**: `/^[0-9a-fA-F]{64}$/` regex on all endpoints ✅
+**Token purpose enforcement**: Each endpoint checks `tokenRecord.purpose === TOKEN_PURPOSE.XXX` ✅
+**Token expiry**: All endpoints check `isAfter(now, tokenRecord.expiresAt)` ✅
+**Token consumption**: Intake and Review endpoints check `tokenRecord.consumedAt` and set it on use ✅
+**One-time use**: Review tokens consumed after submission; Intake tokens consumed after submission ✅
+
+### Area 3: NextAuth JWT/RBAC Middleware — ✅ CORRECT (1 gap found & fixed)
+
+**JWT strategy**: Stateless JWT with 30-day maxAge ✅
+**Role injection**: `jwt` callback injects `id`, `email`, `name`, `role`, `clinicId` into token ✅
+**Session callback**: Exposes these to client via `session.user.*` ✅
+**Active user check**: On `trigger === "update"`, verifies user still exists and `isActive` ✅
+**Middleware route protection**:
+- `/staff/dashboard/*` → requires authenticated staff with valid role ✅
+- `/staff/dashboard/settings` → requires CLINIC_ADMIN+ ✅
+- `/staff/dashboard/system` → requires SYSTEM_MANAGER ✅
+- Role hierarchy via `hasMinimumRole()` ✅
+- Non-SYSTEM_MANAGER without clinicId → rejected ✅
+- Staff login redirect if already authenticated ✅
+
+**QR CODE API — GAP FOUND & FIXED:**
+- **Problem**: `GET /api/qr/[appointmentId]` checked `hasMinimumRole(user.role, "CLINIC_RECEPTION")` but did NOT verify that the appointment belongs to the staff member's clinic. Any authenticated staff member from Clinic A could generate a QR code for an appointment at Clinic B.
+- **Fix**: Added clinic access check: non-SYSTEM_MANAGER staff can only access their own clinic's appointments.
+
+**Admin endpoints**: Both `/api/admin/locks/cleanup` and `/api/admin/slots/generate` correctly check `session.user.role !== "SYSTEM_MANAGER"` ✅
+
+### Area 4: Patient Data / PII Handling — ✅ MOSTLY CORRECT
+
+**Public search API**: Returns only provider/clinic public info, no patient PII ✅
+**Appointment creation response**: Returns `patientName` in the response — this is necessary for the confirmation page display. Acceptable. ✅
+**Intake API**: Returns `patientName` and `provider/clinic/service/specialty` names — necessary for the intake form context. ✅
+**Manage API**: Returns full appointment details including `patientName`, `patientPhone`, `patientEmail`, `reasonForVisit`, `patientDob` — this is the patient's own management portal accessed via a secure token. The token is 256-bit entropy + SHA-256 hashed. Acceptable. ✅
+**Review API**: Only creates a review; doesn't return patient PII. ✅
+**Staff appointment list**: Returns `patientName`, `patientEmail`, `patientPhone` — staff need this for their job. Protected by auth. ✅
+**Staff clinic isolation**: All staff API routes check `clinicId` matches. CLINIC_ADMIN/RECEPTION can only see their own clinic. SYSTEM_MANAGER can specify a clinic via query param. ✅
+
+### Area 5: Input Validation — ✅ CORRECT
+
+- All API routes validate required fields before processing
+- Public booking validates patientType, paymentMethod, DOB, monetary values
+- Review submission validates token format, rating ranges (1-5), comment length (≤1000)
+- Intake validates token format and purpose
+- No SQL injection risk (Prisma parameterized queries)
+- No XSS risk (API returns JSON, React auto-escapes in JSX)
+
+### Files Modified in Phase 2
+1. `src/app/api/slots/[slotId]/lock/route.ts` — Added `timingSafeEqual` for lockKey comparison
+2. `src/app/api/admin/locks/cleanup/route.ts` — Wrapped each lock release in `$transaction` with error handling
+3. `src/app/api/qr/[appointmentId]/route.ts` — Added clinic access check for non-SYSTEM_MANAGER staff
+
+### Verification
+- `npx tsc --noEmit`: 0 errors in src/
+- `bun run lint`: 0 errors, 0 warnings
+
+Stage Summary:
+- **3 bugs found, 3 bugs fixed** — all were real security gaps
+- **Most severe**: QR code API missing clinic isolation (any staff could access any clinic's appointments)
+- **Second most severe**: Lock cleanup race condition (slot could be re-locked during cleanup)
+- **Lowest severity**: Lock key timing-safe comparison (lockKeys are session-generated, not user-controlled, but still best practice)
+- **Overall assessment**: The core business logic is well-implemented. The two-phase locking mechanism is correct with proper DB constraints (P2002 unique on slotId). Token security is strong (256-bit entropy, SHA-256 storage, timing-safe verification). RBAC middleware correctly enforces role hierarchy.

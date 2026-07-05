@@ -45,30 +45,43 @@ export async function POST(request: NextRequest) {
 
     let cleaned = 0;
 
-    // ---- Process each expired lock ----
+    // ---- Process each expired lock in individual transactions ----
+    // Each lock release is atomic to prevent race conditions
     for (const lock of expiredLocks) {
-      // Release the slot back to AVAILABLE if it's still LOCKED
-      if (lock.slot.status === SLOT_STATUS.LOCKED) {
-        await db.slot.update({
-          where: { id: lock.slot.id },
-          data: { status: SLOT_STATUS.AVAILABLE },
+      try {
+        await db.$transaction(async (tx) => {
+          // Re-check slot status inside the transaction
+          const slot = await tx.slot.findUnique({
+            where: { id: lock.slot.id },
+            select: { status: true },
+          });
+
+          if (slot && slot.status === SLOT_STATUS.LOCKED) {
+            await tx.slot.update({
+              where: { id: lock.slot.id },
+              data: { status: SLOT_STATUS.AVAILABLE },
+            });
+          }
+
+          // Delete the lock record
+          await tx.slotLock.delete({
+            where: { id: lock.id },
+          });
         });
+
+        // Audit log (outside transaction — fire-and-forget)
+        createAuditLog({
+          userId: session.user.id,
+          action: AUDIT_ACTIONS.SLOT_LOCK_EXPIRED,
+          targetType: "SLOT_LOCK",
+          targetId: lock.id,
+        });
+
+        cleaned++;
+      } catch (error) {
+        // If one lock fails, log and continue with the rest
+        console.error(`[LOCK_CLEANUP] Failed to release lock ${lock.id}:`, error);
       }
-
-      // Create audit log for the expired lock
-      await createAuditLog({
-        userId: session.user.id,
-        action: AUDIT_ACTIONS.SLOT_LOCK_EXPIRED,
-        targetType: "SLOT_LOCK",
-        targetId: lock.id,
-      });
-
-      // Delete the lock record
-      await db.slotLock.delete({
-        where: { id: lock.id },
-      });
-
-      cleaned++;
     }
 
     // ---- Invalidate caches ----
