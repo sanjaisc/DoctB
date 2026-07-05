@@ -2081,4 +2081,32 @@ Stage Summary:
   - Phase 2: 3 security bugs found & fixed
   - Phase 3: Skipped per user request (deferred to feature work)
   - Phase 4: README + .env.example + Stripe guide delivered
+
+---
+Task ID: Fix-405-booking
+Agent: Main Orchestrator
+Task: Fix "Failed to create appointment (405)" — implement missing POST /api/appointments handler
+
+Work Log:
+- Diagnosed root cause: `src/app/api/appointments/route.ts` was an empty file (0 bytes)
+- The booking page (`/book`) sends POST /api/appointments with slotId, lockKey, patient details, payment info
+- Studied the staff booking route (`/api/staff/book`) and booking page to understand the exact request/response contract
+- Implemented complete POST handler with:
+  - Request body validation (12 required fields + enum validation + email format)
+  - Two-phase lock verification (lock exists, lockKey matches, lock not expired)
+  - Atomic transaction: verify slot LOCKED → validate service/provider/specialty → create Appointment → create Ledger → delete SlotLock → update Slot to BOOKED
+  - Token generation: 4 purpose-specific tokens (MANAGE, INTAKE, REVIEW, CHECK_IN) with SHA-256 hashed storage
+  - IP hashing for fraud detection
+  - Payment status logic: MANUAL_WAIVER → CAPTURED, others → PENDING
+  - Cache invalidation (slots:, search:, clinic: prefixes)
+  - Audit logging (fire-and-forget)
+  - Proper error hierarchy: PublicBookingError with codes (NO_LOCK, LOCK_MISMATCH, LOCK_EXPIRED, SLOT_NOT_FOUND, etc.)
+- Fixed TypeScript error: Prisma `paymentStatus` field inferred as literal "PENDING" — resolved by typing as `string`
+- Verified end-to-end via curl: lock acquired → appointment created → slot BOOKED → 4 tokens generated → ledger created
+- Confirmed 0 TS errors in src/, 0 lint errors, all routes returning 200
+
+Stage Summary:
+- **Root cause**: Empty route file — the POST handler was never written (left as placeholder during initial development)
+- **Fix**: 220-line implementation covering the full two-phase lock→book→release flow
+- **Verified**: curl test showed appointment created with correct status (BOOKED), payment status (CAPTURED for demo), slot status updated (BOOKED), 4 tokens generated, ledger entry created
 ---
