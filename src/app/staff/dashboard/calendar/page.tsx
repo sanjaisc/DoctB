@@ -241,7 +241,7 @@ function SlotCard({ slot }: { slot: SlotInfo }) {
   if (isAvailable) {
     return (
       <Card
-        className="border border-emerald-200 bg-emerald-50/60 rounded-lg shadow-sm hover:shadow-md hover:bg-emerald-50 transition-all duration-150 cursor-pointer border-l-4 border-l-emerald-400"
+        className="border border-emerald-200 bg-emerald-50/60 rounded-lg shadow-sm hover:shadow-md hover:-translate-y-px hover:bg-emerald-50 transition-all duration-150 cursor-pointer border-l-4 border-l-emerald-400"
         style={{ marginTop: minuteOffset > 0 ? `${(minuteOffset / 60) * 100}%` : 0 }}
       >
         <CardContent className="p-2.5 flex items-center justify-between">
@@ -348,8 +348,8 @@ function CurrentTimeIndicator({ containerRef }: { containerRef: React.RefObject<
       className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
       style={{ top: `${position}px` }}
     >
-      <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1 shrink-0" />
-      <div className="flex-1 h-[2px] bg-red-500" />
+      <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1 shrink-0 ring-4 ring-red-500/20" />
+      <div className="flex-1 h-[2px] bg-red-500/80" />
     </div>
   );
 }
@@ -639,7 +639,7 @@ export default function CalendarPage() {
                   key={hour}
                   className={cn(
                     "flex min-h-18",
-                    idx % 2 === 0 ? "bg-white" : "bg-muted/20",
+                    idx % 2 === 0 ? "bg-white" : "bg-muted/30",
                     "border-b border-border/40 last:border-b-0"
                   )}
                 >

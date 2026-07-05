@@ -1421,3 +1421,235 @@ Work Log:
 8. **PWA manifest** — Offline caching, install prompt, service worker for patient portal
 9. **QR code generation** — For check-in kiosks and appointment management links
 10. **Mobile touch optimizations** — Swipe gestures on calendar, pull-to-refresh on activity feed
+
+---
+Task ID: 14-a
+Agent: Main Orchestrator
+Task: Sprint 14-a — System Admin Cross-Clinic Dashboard
+
+Work Log:
+- Read project context from worklog.md (first 60 lines) — understood Prisma schema, auth system, enums, caching patterns
+- Examined existing staff dashboard layout (src/app/staff/dashboard/layout.tsx) for nav item pattern
+- Examined existing analytics page (src/app/staff/dashboard/analytics/page.tsx) for component patterns and Recharts usage
+- Studied auth.ts, enums.ts, db.ts, cache.ts, constants.ts for API integration patterns
+- Read Prisma schema for AuditLog model (fields: id, userId, action, targetType, targetId, appointmentId, ipAddress, createdAt) and Review model
+- Created System Admin API endpoint at src/app/api/staff/admin/route.ts:
+  - GET handler with SYSTEM_MANAGER role gate (returns 403 for non-privileged roles)
+  - 8 parallel Prisma queries using Promise.all for performance:
+    - Published clinics with providers, appointment counts, reviews
+    - Total active providers count
+    - Total appointments count
+    - Total reviews count
+    - Average platform rating (aggregate)
+    - Recent 20 audit logs with user + clinic names
+    - All staff users with clinic names
+    - Last login times from AuditLog (STAFF_LOGIN action groupBy)
+  - Computed clinic summary with today/week appointment filtering using date-fns
+  - 60-second TTL cache via cache.getOrSet
+- Updated staff dashboard layout (src/app/staff/dashboard/layout.tsx):
+  - Added Shield import from lucide-react
+  - Inserted Admin nav item with minRole=SYSTEM_MANAGER between Analytics and Settings
+- Created System Admin page at src/app/staff/dashboard/admin/page.tsx:
+  - "use client" page with full loading/error/data states
+  - Header: Shield icon with purple-to-emerald gradient background, "System Administration" title, gradient strip accent
+  - Platform Stats Row: 5 gradient cards (emerald/blue/teal/amber/purple) for Total Clinics, Total Providers, Total Appointments, Total Reviews, Avg Rating
+  - Clinics Overview Table (xl:col-span-3): columns for Clinic Name (linked to /clinic/[slug]), City, Providers, Today, This Week, Rating with star — responsive horizontal scroll, sticky header, hover rows
+  - Recent Platform Activity (xl:col-span-2): Last 10 audit logs with action-based icons (12+ action types mapped), colored left border (red/green/sky/purple/teal/amber), relative timestamps
+  - Staff Directory (xl:col-span-4): table with Name, Email, Role (color-coded badge: purple/emerald/sky), Clinic, Last Login — responsive column hiding
+  - System Health (xl:col-span-1): Database Connected, Cache Active, v1.0.0 MVP with green checkmarks
+  - Skeleton loading state for all sections
+  - Error state with red card, AlertCircle, retry button
+  - Refresh button in header
+  - Fully responsive design (mobile-first with sm/md/lg/xl breakpoints)
+- Ran `bun run lint` — 0 errors
+
+Stage Summary:
+- **API Endpoint**: `/api/staff/admin` — auth-gated GET with 8 parallel Prisma queries, 60s cache, cross-clinic data aggregation
+- **Layout Update**: Added "Admin" nav item with Shield icon, visible only to SYSTEM_MANAGER role
+- **Admin Page**: Complete system administration dashboard with 5 stat cards, clinic overview table, recent activity feed, staff directory, and system health panel
+- **Design**: Purple-to-emerald gradient accents for admin differentiation, consistent with project's emerald base theme
+- **Key Files Created**: src/app/api/staff/admin/route.ts, src/app/staff/dashboard/admin/page.tsx
+- **Key Files Modified**: src/app/staff/dashboard/layout.tsx (Shield import + nav item)
+
+---
+Task ID: 14-b
+Agent: Main Orchestrator
+Task: Sprint 14-b — Slot Generator Service, Lock Cleanup API, and Intake Form System
+
+Work Log:
+- Read project context from worklog.md (first 60 lines) and Prisma schema for SlotTemplate, Slot, SlotLock, Token, InternalNote, Appointment models
+- Examined existing manage page (src/app/manage/[token]/page.tsx) for intake button placement
+- Examined existing appointments API (src/app/api/appointments/route.ts) for token creation pattern
+- Examined manage API (src/app/api/manage/route.ts) for token validation pattern
+- Created Slot Generator API at src/app/api/admin/slots/generate/route.ts:
+  - POST endpoint, auth-gated (SYSTEM_MANAGER only, returns 403 for others)
+  - Reads all active SlotTemplates with provider clinic info
+  - Generates 30-minute slots for next 90 days (SLOT_GENERATION_WINDOW_DAYS) from today
+  - For each template, iterates through matching dayOfWeek, parses HH:mm times, creates slots
+  - Idempotent: checks existing slot via @@unique([providerId, startTime]) constraint, skips if exists
+  - Creates slots with status=AVAILABLE, modality from template
+  - Returns { generated, skipped, total }
+  - Invalidates caches (slots:, search:) and creates SLOT_GENERATED audit log
+- Created Lock Cleanup API at src/app/api/admin/locks/cleanup/route.ts:
+  - POST endpoint, auth-gated (SYSTEM_MANAGER only)
+  - Finds all SlotLock records where expiresAt < now()
+  - For each expired lock: sets slot back to AVAILABLE if still LOCKED, creates SLOT_LOCK_EXPIRED audit log, deletes lock
+  - Returns { cleaned }
+  - Invalidates caches (slots:, search:)
+- Created Intake Form API at src/app/api/intake/route.ts:
+  - GET handler (public, token-based):
+    - Validates token: 64-char hex format, SHA-256 hash lookup, purpose=INTAKE, not expired
+    - Returns appointment details (patient name, provider, clinic, service, specialty, date/time, modality, insurance) + existing intake data from InternalNote
+  - POST handler (public, token-based):
+    - Validates token: format, hash lookup, purpose=INTAKE, not consumed, not expired
+    - Creates or updates InternalNote with authorId=null, content="[INTAKE_FORM] " + JSON.stringify(formData)
+    - Marks appointment intakeCompleted=true, consumes token
+    - Returns 200 on success
+- Created Intake Form Page at src/app/intake/[token]/page.tsx:
+  - "use client" page with full loading/error/expired/already_submitted/success states
+  - Professional intake form with emerald color scheme and ClinicBook branding
+  - Appointment summary card (provider, clinic, date, service, insurance badge, modality badge)
+  - 7 form sections each with emerald left border card wrapper:
+    1. Chief Complaint (textarea, required)
+    2. Current Medications (textarea, helper text)
+    3. Allergies (textarea, helper text)
+    4. Medical History (textarea, helper text)
+    5. Family History (textarea, optional)
+    6. Emergency Contact (name, phone, relationship — 3 fields in a row)
+    7. Additional Notes (textarea, optional)
+  - Submit button (emerald, full-width on mobile, responsive)
+  - Loading state with skeleton, error/expired/already submitted states
+  - Success state with animated checkmark + message + "Back to Home" button
+  - Pre-populates from existingIntakeData if form was previously submitted (via update path)
+  - Sticky header with ClinicBook branding + Patient Intake Portal
+  - Sticky footer: "Powered by ClinicBook · Patient Intake Portal"
+- Added "Complete Intake Form" button to Patient Portal manage page:
+  - Added `import Link from "next/link"` to manage page
+  - Inserted emerald outline button between "What to Know" card and "Cancellation Policy" card
+  - Shows only when !data.appointment.intakeCompleted && data.appointment.status === "BOOKED"
+  - Links to /intake/[token] using the same URL token params
+  - Uses FileText icon, emerald outline button style
+- Generated INTAKE token on booking in appointments API:
+  - After MANAGE and REVIEW token creation, creates INTAKE token
+  - Uses same generateSecureToken() + hashToken() pattern
+  - Expires 7 days after creation or 1 day before appointment, whichever is sooner
+  - Added import for TOKEN_PURPOSE.INTAKE (already available from existing imports)
+- Ran `bun run lint` — 0 errors
+
+Stage Summary:
+- **Slot Generator API**: POST /api/admin/slots/generate — generates 30-min slots from active templates for 90-day window, idempotent, auth-gated
+- **Lock Cleanup API**: POST /api/admin/locks/cleanup — sweeps expired locks, releases slots, creates audit logs
+- **Intake Form API**: GET+POST /api/intake — token-gated intake form retrieval and submission with InternalNote storage
+- **Intake Form Page**: Full patient-facing pre-visit intake form with 7 sections, emerald theme, animated success state
+- **Manage Page Update**: "Complete Intake Form" button shown for BOOKED appointments without completed intake
+- **Booking Flow Update**: INTAKE token (7-day or 1-day-before expiry) generated alongside MANAGE and REVIEW tokens
+- **Key Files Created**: src/app/api/admin/slots/generate/route.ts, src/app/api/admin/locks/cleanup/route.ts, src/app/api/intake/route.ts, src/app/intake/[token]/page.tsx
+- **Key Files Modified**: src/app/api/appointments/route.ts (INTAKE token creation), src/app/manage/[token]/page.tsx (intake button + Link import)
+
+---
+Task ID: 14-c
+Agent: Main Orchestrator
+Task: Comprehensive Styling Polish and Micro-Interactions Across All Pages
+
+Work Log:
+- Read and analyzed all 8 target files plus global CSS to understand current state
+- Added global CSS keyframes: gradient-shift, slide-in-right, bounce-subtle, star-shimmer, progress-fill, card-mount
+- Added global CSS utility classes: .input-focus-glow, .card-hover-lift, .shimmer-text, .btn-shimmer, .animate-bounce-subtle, .star-shimmer, .stagger-fade-in, .bg-gradient-animated, .results-fade, .animate-card-mount
+- Improved scrollbar styling: emerald tint on hover via oklch override
+- Staff Login: animated gradient background, decorative heartbeat SVG + medical cross (opacity 0.04/0.03), Forgot password link with toast, password focus → emerald card shadow, loading shimmer on submit text, card scale(0.98→1) mount animation
+- Staff Dashboard: stat card gradient overlay (from-white/40), hover:scale-[1.02] transition, pulse dot next to Today's Schedule, gradient divider between sections, quick action arrow slide-in on hover (opacity-0 translate-x-2 → opacity-100 translate-x-0)
+- Calendar Page: confirmed existing now-indicator with enhanced ring, hover:-translate-y-px on available slot cards, enhanced alternating row opacity (bg-muted/30)
+- Booking Page: progress bar fill animation (key + animation: progress-fill), input-focus-glow on step 1 & 2 form cards, slide-in-right step transitions (200ms), pulsing emerald dot on active step label
+- Provider Profile: breadcrumb (Home > Search > Provider Name), animated gradient on hero strip (bg-gradient-animated), star shimmer effect on main rating, review card hover:border-l-4 hover:border-l-emerald-400 transition
+- Clinic Detail: breadcrumb (Home > Clinics > Clinic Name), gradient overlay on header, animated gradient strip, badge hover:scale-105, contact card hover:shadow-md transition
+- Search Page: btn-shimmer on search button, bouncing animation on "Popular: Family Medicine" chip, gradient fade at bottom of results (results-fade), provider cards use stagger-fade-in class
+
+Stage Summary:
+- **Global CSS**: 10 new keyframe animations + 10 utility classes added to globals.css
+- **All changes are CSS/Tailwind-only** — zero JavaScript animation logic added
+- **Lint passes**: 0 errors
+- **Key Files Modified**: src/app/globals.css, src/app/staff/login/page.tsx, src/app/staff/dashboard/page.tsx, src/app/staff/dashboard/calendar/page.tsx, src/app/book/page.tsx, src/app/providers/[slug]/page.tsx, src/app/clinic/[slug]/page.tsx, src/components/search/search-page.tsx, src/components/search/provider-card.tsx
+
+---
+Task ID: 14
+Agent: Main Orchestrator
+Task: Sprint 8 — System Admin Dashboard, Slot Generator, Intake Forms, Styling Polish
+
+Work Log:
+- Reviewed worklog.md: Sprints 1-7 all complete
+- Ran `bun run lint` — 0 errors, 0 warnings
+- Dispatched 3 parallel subagents:
+  1. **Admin Dashboard Agent (14-a)**: System Admin API + cross-clinic dashboard page + nav item
+  2. **Backend Services Agent (14-b)**: Slot generator API, lock cleanup API, intake form system
+  3. **Styling Polish Agent (14-c)**: 10 CSS animations, 10 utility classes, polish across 9 files
+- All subagent work verified: 0 lint errors across all files
+- Route verification via curl: /, /clinics, /staff/login, /providers/sarah-chen, /intake/test, /review/test — all 200
+- Browser QA blocked by OOM (Turbopack + Chromium exceeds 4GB container limit)
+
+# Current Project Status Assessment
+- Sprint 1 (Data Layer + Auth): ✅ COMPLETE
+- Sprint 2 (Public Search): ✅ COMPLETE
+- Sprint 3 (Booking Wizard + Two-Phase Locking): ✅ COMPLETE
+- Sprint 4 (Staff Portal): ✅ COMPLETE
+- Sprint 5 (Additional Features): ✅ COMPLETE
+- Sprint 6 (Advanced Features + Styling): ✅ COMPLETE
+- Sprint 7 (Notifications, Reviews, Provider Profiles): ✅ COMPLETE
+- Sprint 8 (Production Readiness): ✅ COMPLETE
+  - System Admin cross-clinic dashboard (5 stat cards, clinic table, staff directory, system health)
+  - Slot generator API (idempotent 90-day generation from templates)
+  - Lock cleanup API (expired lock sweep + slot release)
+  - Patient intake form system (7-section form, token-validated, appointment-linked)
+  - INTAKE token generation on booking
+  - "Complete Intake Form" button on patient portal
+  - Comprehensive styling polish: 10 CSS animations, 10 utility classes
+  - Micro-interactions: hover lifts, shimmer effects, bounce animations, gradient shifts
+  - Breadcrumbs on provider profile and clinic detail pages
+  - Enhanced scrollbars with emerald tint
+- **Project Scale**: ~120 source files, ~30,000+ lines of TypeScript/TSX, 30+ API routes, 22+ pages
+- **Full End-to-End Flow**: Search → Browse Clinics → View Provider → Book → Confirm → Complete Intake → Patient Portal → Check In → Leave Review → Staff Manage → Activity Feed → Analytics → Admin
+
+# Completed Modifications (Sprint 8)
+
+### New Files
+- `src/app/api/staff/admin/route.ts`: System Admin cross-clinic API (8 parallel queries, 60s cache)
+- `src/app/staff/dashboard/admin/page.tsx`: Admin page (5 stat cards, clinic table, activity feed, staff directory, system health)
+- `src/app/api/admin/slots/generate/route.ts`: Slot generator API (90-day window, idempotent)
+- `src/app/api/admin/locks/cleanup/route.ts`: Lock cleanup API (expired sweep + slot release)
+- `src/app/api/intake/route.ts`: Intake form API (GET + POST, token-validated)
+- `src/app/intake/[token]/page.tsx`: Intake form page (7 sections, emerald theme, success animation)
+
+### Modified Files
+- `src/app/staff/dashboard/layout.tsx`: Admin nav item (Shield icon, SYSTEM_MANAGER only)
+- `src/app/api/appointments/route.ts`: INTAKE token generation (7-day/1-day-before expiry)
+- `src/app/manage/[token]/page.tsx`: "Complete Intake Form" button for BOOKED appointments
+- `src/app/globals.css`: 10 keyframe animations + 10 utility classes
+- `src/app/staff/login/page.tsx`: Animated gradient bg, decorative SVGs, focus glow, mount animation
+- `src/app/staff/dashboard/page.tsx`: Stat card hover, pulse dot, gradient divider, arrow slide-in
+- `src/app/staff/dashboard/calendar/page.tsx`: Enhanced now-indicator, slot hover lift, row opacity
+- `src/app/book/page.tsx`: Progress bar animation, input glow, slide transitions, pulsing dot
+- `src/app/providers/[slug]/page.tsx`: Breadcrumb, animated hero gradient, star shimmer, review hover
+- `src/app/clinic/[slug]/page.tsx`: Breadcrumb, gradient overlay, badge hover, contact hover
+- `src/components/search/search-page.tsx`: Button shimmer, bouncing chip, results fade
+- `src/components/search/provider-card.tsx`: Stagger fade-in animation
+
+# Unresolved Issues / Risks
+1. **OOM in dev environment**: Turbopack + Chromium exceeds 4GB container memory (production builds unaffected)
+2. The "middleware" deprecation warning in Next.js 16 (functional, cosmetic only)
+3. Geolocation requires user to grant browser location permission
+4. Stripe SDK not installed — all bookings use MANUAL_WAIVER or CASH_AT_DESK
+5. No email sending configured — confirmation/review/intake emails not sent
+6. Slot generator is manual (API call) not automatic (no cron/mini-service running continuously)
+7. Lock cleanup is manual (API call) not automatic
+8. Intake form data stored as JSON in InternalNote — not a proper form builder
+
+# Priority Recommendations for Next Phase (Sprint 9: Final Polish)
+1. **Slot generator mini-service** — Bun-based background service running every 6 hours
+2. **Email integration stubs** — SendGrid/SES for booking confirmations
+3. **QR code generation** — For check-in kiosks and appointment links
+4. **Accessibility improvements** — ARIA labels, keyboard navigation, focus management
+5. **Performance** — Component code splitting, lazy loading for heavy pages (analytics, admin)
+6. **Error boundary components** — Catch rendering errors gracefully per-route
+7. **Loading state improvements** — Skeleton components for all pages
+8. **SEO improvements** — Meta tags, Open Graph, structured data for clinics/providers
+9. **PWA manifest** — Offline caching for patient portal
+10. **End-to-end testing** — Automated test scripts for critical flows

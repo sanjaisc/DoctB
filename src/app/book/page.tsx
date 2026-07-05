@@ -240,10 +240,12 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
         <div className="h-0.5 bg-gray-200 w-full rounded-full" />
         <div
           className="h-0.5 bg-emerald-600 rounded-full transition-all duration-500 ease-out"
+          key={`progress-${currentStep}`}
           style={{
             width: `${((Math.min(currentStep, 3)) / 3) * 100}%`,
             marginLeft: `${(1 / (STEP_LABELS.length * 2)) * 100}%`,
             marginRight: `${(1 / (STEP_LABELS.length * 2)) * 100}%`,
+            animation: 'progress-fill 0.5s ease-out',
           }}
         />
       </div>
@@ -281,7 +283,7 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
                 </div>
                 <div className="text-center">
                   <span
-                    className={`block text-[11px] sm:text-xs leading-tight max-w-[72px] ${
+                    className={`block text-[11px] sm:text-xs leading-tight max-w-[72px] flex items-center gap-1 ${
                       isActive
                         ? "text-emerald-700 font-semibold"
                         : isCompleted
@@ -290,6 +292,12 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
                     }`}
                   >
                     {stepInfo.title}
+                    {isActive && (
+                      <span className="relative flex h-1.5 w-1.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                      </span>
+                    )}
                   </span>
                   <span
                     className={`block text-[10px] leading-tight max-w-[72px] mt-0.5 ${
@@ -1138,7 +1146,7 @@ export default function BookingPage() {
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
         {/* ---- Step 1: Visit Details ---- */}
         {step === 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div className="space-y-6 animate-in fade-in duration-200" key="step-1" style={{ animation: 'slide-in-right 0.2s ease-out' }}>
             <div>
               <h1 className="text-2xl font-bold text-foreground">What brings you in?</h1>
               <p className="text-muted-foreground mt-1 text-sm">
@@ -1146,7 +1154,7 @@ export default function BookingPage() {
               </p>
             </div>
 
-            <Card className="shadow-sm">
+            <Card className="shadow-sm input-focus-glow">
               <CardContent className="p-5 space-y-5">
                 {/* Reason for Visit */}
                 <div className="space-y-2">
@@ -1394,7 +1402,7 @@ export default function BookingPage() {
 
         {/* ---- Step 2: Your Information ---- */}
         {step === 2 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div className="space-y-6 animate-in fade-in duration-200" key="step-2" style={{ animation: 'slide-in-right 0.2s ease-out' }}>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Your Information</h1>
               <p className="text-muted-foreground mt-1 text-sm">
@@ -1402,7 +1410,7 @@ export default function BookingPage() {
               </p>
             </div>
 
-            <Card className="shadow-sm">
+            <Card className="shadow-sm input-focus-glow">
               <CardContent className="p-5 space-y-4">
                 {/* Patient Name */}
                 <div className="space-y-2">
@@ -1468,7 +1476,7 @@ export default function BookingPage() {
 
         {/* ---- Step 3: Review & Confirm ---- */}
         {step === 3 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div className="space-y-6 animate-in fade-in duration-200" key="step-3" style={{ animation: 'slide-in-right 0.2s ease-out' }}>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Review & Confirm</h1>
               <p className="text-muted-foreground mt-1 text-sm">

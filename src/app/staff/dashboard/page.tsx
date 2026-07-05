@@ -86,8 +86,10 @@ function StatCard({
   trend?: string;
 }) {
   return (
-    <Card className="relative overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+    <Card className="relative overflow-hidden border-border/50 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300">
       <div className={`absolute inset-x-0 top-0 h-1 ${gradient}`} />
+      {/* Subtle gradient overlay from top */}
+      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -469,6 +471,9 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Gradient divider */}
+      <div className="h-px bg-gradient-to-r from-emerald-200/30 via-emerald-200/50 to-transparent" />
+
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Today's schedule — takes 2 columns */}
@@ -480,7 +485,15 @@ export default function DashboardPage() {
                   <Activity className="size-4 text-emerald-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">Today&apos;s Schedule</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base">Today&apos;s Schedule</CardTitle>
+                    {data.stats.upcomingCount > 0 && (
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                      </span>
+                    )}
+                  </div>
                   <CardDescription className="text-xs">
                     {data.stats.todayAppointments} appointment{data.stats.todayAppointments !== 1 ? "s" : ""} today
                   </CardDescription>
@@ -535,7 +548,7 @@ export default function DashboardPage() {
             <CardContent className="space-y-2 px-4 pb-4">
               <button
                 onClick={() => router.push("/staff/dashboard/book")}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-colors text-left cursor-pointer group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-all text-left cursor-pointer group"
               >
                 <div className="size-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <CalendarPlus className="size-4 text-white" />
@@ -544,12 +557,12 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium text-emerald-900">New Booking</p>
                   <p className="text-xs text-emerald-700/70">Book for a phone-in patient</p>
                 </div>
-                <ArrowRight className="size-4 text-emerald-400 ml-auto" />
+                <ArrowRight className="size-4 text-emerald-400 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </button>
 
               <button
                 onClick={() => router.push("/staff/dashboard/calendar")}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition-colors text-left cursor-pointer group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition-all text-left cursor-pointer group"
               >
                 <div className="size-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <CalendarDays className="size-4 text-white" />
@@ -558,12 +571,12 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium text-blue-900">View Calendar</p>
                   <p className="text-xs text-blue-700/70">See daily schedule grid</p>
                 </div>
-                <ArrowRight className="size-4 text-blue-400 ml-auto" />
+                <ArrowRight className="size-4 text-blue-400 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </button>
 
               <button
                 onClick={() => router.push("/staff/dashboard/slots")}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/60 transition-colors text-left cursor-pointer group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/60 transition-all text-left cursor-pointer group"
               >
                 <div className="size-9 rounded-lg bg-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Clock className="size-4 text-white" />
@@ -572,7 +585,7 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium text-amber-900">Manage Slots</p>
                   <p className="text-xs text-amber-700/70">Block or free time slots</p>
                 </div>
-                <ArrowRight className="size-4 text-amber-400 ml-auto" />
+                <ArrowRight className="size-4 text-amber-400 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </button>
             </CardContent>
           </Card>

@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   BarChart3,
   Activity,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -76,6 +77,12 @@ const NAV_ITEMS = [
     label: "Analytics",
     icon: BarChart3,
     minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/admin",
+    label: "Admin",
+    icon: Shield,
+    minRole: STAFF_ROLE.SYSTEM_MANAGER,
   },
   {
     href: "/staff/dashboard/settings",

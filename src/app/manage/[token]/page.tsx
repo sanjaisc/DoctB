@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isAfter, subHours, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
 
@@ -760,6 +761,23 @@ export default function ManagePage() {
                     </CardContent>
                   </Card>
                 </motion.div>
+
+                {/* ---- Complete Intake Form Button ---- */}
+                {!data.appointment.intakeCompleted && data.appointment.status === "BOOKED" && (
+                  <motion.div {...fadeInUp}>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold text-base h-12 rounded-lg"
+                      asChild
+                    >
+                      <Link href={`/intake/${token}`}>
+                        <FileText className="size-5" />
+                        Complete Intake Form
+                      </Link>
+                    </Button>
+                  </motion.div>
+                )}
 
                 {/* ---- Cancellation Policy ---- */}
                 <motion.div {...fadeInUp}>

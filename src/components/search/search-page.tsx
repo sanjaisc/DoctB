@@ -710,7 +710,7 @@ export function SearchPage() {
                 <Button
                   type="submit"
                   disabled={!specialtyId || loading}
-                  className="h-12 px-10 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-base font-semibold shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all"
+                  className="h-12 px-10 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-base font-semibold shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all btn-shimmer"
                 >
                   {loading ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -734,7 +734,7 @@ export function SearchPage() {
                       executeSearch({ specialtyId: familyMed.id });
                     }
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all cursor-pointer animate-bounce-subtle"
                 >
                   <span className="text-emerald-500">🔥</span>
                   Popular: Family Medicine
@@ -1132,11 +1132,16 @@ export function SearchPage() {
             {/* Subtle divider */}
             <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-            <div className="space-y-4">
+            <div className="space-y-4 relative">
               {results.map((provider, idx) => (
                 <ProviderCard key={provider.id} provider={provider} index={idx} specialtyId={specialtyId ?? undefined} />
               ))}
             </div>
+
+            {/* Gradient fade before footer */}
+            {hasMore && results.length > 3 && (
+              <div className="results-fade" />
+            )}
 
             {/* Load More */}
             {hasMore && (

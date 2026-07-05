@@ -328,6 +328,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create an INTAKE token — expires 7 days after creation or 1 day before appointment, whichever is sooner
+    const intakeRawToken = generateSecureToken();
+    const intakeTokenHash = hashToken(intakeRawToken);
+    const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const oneDayBeforeAppointment = new Date(appointment.startTime.getTime() - 24 * 60 * 60 * 1000);
+    const intakeTokenExpiresAt = sevenDaysFromNow < oneDayBeforeAppointment ? sevenDaysFromNow : oneDayBeforeAppointment;
+
+    await db.token.create({
+      data: {
+        tokenHash: intakeTokenHash,
+        appointmentId: appointment.id,
+        purpose: TOKEN_PURPOSE.INTAKE,
+        expiresAt: intakeTokenExpiresAt,
+      },
+    });
+
     // ---- 4. Audit log (fire-and-forget) ----
     createAuditLog({
       action: AUDIT_ACTIONS.BOOKING_CREATED,

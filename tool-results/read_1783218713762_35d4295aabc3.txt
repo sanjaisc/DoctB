@@ -1,0 +1,652 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useState, useCallback } from "react";
+     4→     4→import { useSession } from "next-auth/react";
+     5→     5→import { useRouter } from "next/navigation";
+     6→     6→import Link from "next/link";
+     7→     7→import {
+     8→     8→  CalendarDays,
+     9→     9→  CalendarPlus,
+    10→    10→  Clock,
+    11→    11→  Users,
+    12→    12→  TrendingUp,
+    13→    13→  CheckCircle2,
+    14→    14→  XCircle,
+    15→    15→  AlertTriangle,
+    16→    16→  ArrowRight,
+    17→    17→  Loader2,
+    18→    18→  RefreshCw,
+    19→    19→  Building2,
+    20→    20→  Activity,
+    21→    21→  Phone,
+    22→    22→  Video,
+    23→    23→  UserCheck,
+    24→    24→  BarChart3,
+    25→    25→  CheckCheck,
+    26→    26→  Bell,
+    27→    27→  UserX,
+    28→    28→  CheckCircle,
+    29→    29→} from "lucide-react";
+    30→    30→import { Button } from "@/components/ui/button";
+    31→    31→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+    32→    32→import { Badge } from "@/components/ui/badge";
+    33→    33→import { Skeleton } from "@/components/ui/skeleton";
+    34→    34→import { format, formatDistanceToNow } from "date-fns";
+    35→    35→import type { ClinicBookSessionUser } from "@/lib/auth";
+    36→    36→import { AUDIT_ACTIONS } from "@/lib/constants";
+    37→    37→
+    38→    38→interface DashboardStats {
+    39→    39→  todayAppointments: number;
+    40→    40→  totalSlotsToday: number;
+    41→    41→  availableSlotsToday: number;
+    42→    42→  bookedToday: number;
+    43→    43→  utilizationPercent: number;
+    44→    44→  upcomingCount: number;
+    45→    45→  totalBookings: number;
+    46→    46→  completedCount: number;
+    47→    47→  cancelledCount: number;
+    48→    48→  noShowCount: number;
+    49→    49→}
+    50→    50→
+    51→    51→interface TodayAppointment {
+    52→    52→  id: string;
+    53→    53→  startTime: string;
+    54→    54→  status: string;
+    55→    55→  patientName: string;
+    56→    56→  patientPhone: string;
+    57→    57→  modality: string;
+    58→    58→  provider: { firstName: string; lastName: string; credentials: string | null };
+    59→    59→  service: { name: string };
+    60→    60→}
+    61→    61→
+    62→    62→interface DashboardData {
+    63→    63→  clinic: { id: string; name: string; slug: string; phoneNumber: string; status: string } | null;
+    64→    64→  today: string;
+    65→    65→  stats: DashboardStats;
+    66→    66→  todayAppointments: TodayAppointment[];
+    67→    67→  upcomingAppointments: TodayAppointment[];
+    68→    68→  recentAppointments: TodayAppointment[];
+    69→    69→}
+    70→    70→
+    71→    71→function StatCard({
+    72→    72→  title,
+    73→    73→  value,
+    74→    74→  subtitle,
+    75→    75→  icon: Icon,
+    76→    76→  gradient,
+    77→    77→  iconBg,
+    78→    78→  trend,
+    79→    79→}: {
+    80→    80→  title: string;
+    81→    81→  value: string | number;
+    82→    82→  subtitle?: string;
+    83→    83→  icon: React.ElementType;
+    84→    84→  gradient: string;
+    85→    85→  iconBg: string;
+    86→    86→  trend?: string;
+    87→    87→}) {
+    88→    88→  return (
+    89→    89→    <Card className="relative overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+    90→    90→      <div className={`absolute inset-x-0 top-0 h-1 ${gradient}`} />
+    91→    91→      <CardContent className="p-5">
+    92→    92→        <div className="flex items-start justify-between">
+    93→    93→          <div className="space-y-2">
+    94→    94→            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+    95→    95→            <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
+    96→    96→            {subtitle && (
+    97→    97→              <p className="text-xs text-muted-foreground">{subtitle}</p>
+    98→    98→            )}
+    99→    99→            {trend && (
+   100→   100→              <div className="flex items-center gap-1 text-xs font-medium">
+   101→   101→                <TrendingUp className="size-3 text-emerald-600" />
+   102→   102→                <span className="text-emerald-600">{trend}</span>
+   103→   103→              </div>
+   104→   104→            )}
+   105→   105→          </div>
+   106→   106→          <div className={`size-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
+   107→   107→            <Icon className="size-5" />
+   108→   108→          </div>
+   109→   109→        </div>
+   110→   110→      </CardContent>
+   111→   111→    </Card>
+   112→   112→  );
+   113→   113→}
+   114→   114→
+   115→   115→function AppointmentRow({
+   116→   116→  apt,
+   117→   117→  compact,
+   118→   118→}: {
+   119→   119→  apt: TodayAppointment;
+   120→   120→  compact?: boolean;
+   121→   121→}) {
+   122→   122→  const time = format(new Date(apt.startTime), "h:mm a");
+   123→   123→  const providerName = `Dr. ${apt.provider.firstName} ${apt.provider.lastName}`;
+   124→   124→
+   125→   125→  return (
+   126→   126→    <div
+   127→   127→      className={`flex items-center gap-3 p-3 rounded-xl hover:bg-muted/40 transition-colors group ${
+   128→   128→        compact ? "" : "border border-border/30"
+   129→   129→      }`}
+   130→   130→    >
+   131→   131→      <div className="text-center shrink-0 w-14">
+   132→   132→        <p className="text-sm font-semibold text-foreground">{time}</p>
+   133→   133→      </div>
+   134→   134→      <div className="w-px h-10 bg-border/50 shrink-0" />
+   135→   135→      <div className="flex-1 min-w-0">
+   136→   136→        <p className="text-sm font-medium text-foreground truncate">
+   137→   137→          {apt.patientName}
+   138→   138→        </p>
+   139→   139→        <div className="flex items-center gap-2 mt-0.5">
+   140→   140→          <span className="text-xs text-muted-foreground truncate">
+   141→   141→            {providerName}
+   142→   142→          </span>
+   143→   143→          <span className="text-border">·</span>
+   144→   144→          <span className="text-xs text-muted-foreground truncate">
+   145→   145→            {apt.service.name}
+   146→   146→          </span>
+   147→   147→        </div>
+   148→   148→      </div>
+   149→   149→      <div className="flex items-center gap-2 shrink-0">
+   150→   150→        <Badge
+   151→   151→          variant="outline"
+   152→   152→          className={`text-[10px] px-2 py-0.5 ${
+   153→   153→            apt.modality === "VIDEO"
+   154→   154→              ? "bg-blue-50 text-blue-600 border-blue-200"
+   155→   155→              : "bg-emerald-50 text-emerald-600 border-emerald-200"
+   156→   156→          }`}
+   157→   157→        >
+   158→   158→          {apt.modality === "VIDEO" ? (
+   159→   159→            <Video className="size-2.5 mr-1" />
+   160→   160→          ) : (
+   161→   161→            <Building2 className="size-2.5 mr-1" />
+   162→   162→          )}
+   163→   163→          {apt.modality === "VIDEO" ? "Video" : "In-Clinic"}
+   164→   164→        </Badge>
+   165→   165→        <Badge
+   166→   166→          variant="outline"
+   167→   167→          className={`text-[10px] px-2 py-0.5 ${
+   168→   168→            apt.status === "CHECKED_IN"
+   169→   169→              ? "bg-amber-50 text-amber-700 border-amber-200"
+   170→   170→              : "bg-sky-50 text-sky-700 border-sky-200"
+   171→   171→          }`}
+   172→   172→        >
+   173→   173→          {apt.status === "CHECKED_IN" ? (
+   174→   174→            <UserCheck className="size-2.5 mr-1" />
+   175→   175→          ) : (
+   176→   176→            <Clock className="size-2.5 mr-1" />
+   177→   177→          )}
+   178→   178→          {apt.status === "CHECKED_IN" ? "Checked In" : "Booked"}
+   179→   179→        </Badge>
+   180→   180→      </div>
+   181→   181→    </div>
+   182→   182→  );
+   183→   183→}
+   184→   184→
+   185→   185→function EmptyState({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
+   186→   186→  return (
+   187→   187→    <div className="flex flex-col items-center justify-center py-8 text-center">
+   188→   188→      <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+   189→   189→        <Icon className="size-5 text-muted-foreground" />
+   190→   190→      </div>
+   191→   191→      <p className="text-sm font-medium text-foreground">{title}</p>
+   192→   192→      <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">{description}</p>
+   193→   193→    </div>
+   194→   194→  );
+   195→   195→}
+   196→   196→
+   197→   197→// ---- Recent Activity ----
+   198→   198→
+   199→   199→interface ActivityNotification {
+   200→   200→  id: string;
+   201→   201→  action: string;
+   202→   202→  createdAt: string;
+   203→   203→  patientName: string | null;
+   204→   204→  providerName: string | null;
+   205→   205→  serviceName: string | null;
+   206→   206→}
+   207→   207→
+   208→   208→const ACTIVITY_ICON_MAP: Record<string, { icon: React.ElementType; color: string; bg: string; borderColor: string }> = {
+   209→   209→  [AUDIT_ACTIONS.BOOKING_CREATED]: { icon: CalendarPlus, color: "text-emerald-600", bg: "bg-emerald-100", borderColor: "border-l-emerald-500" },
+   210→   210→  [AUDIT_ACTIONS.BOOKING_CANCELLED]: { icon: XCircle, color: "text-red-500", bg: "bg-red-100", borderColor: "border-l-red-500" },
+   211→   211→  [AUDIT_ACTIONS.BOOKING_CHECKED_IN]: { icon: CheckCircle, color: "text-blue-600", bg: "bg-blue-100", borderColor: "border-l-blue-500" },
+   212→   212→  [AUDIT_ACTIONS.BOOKING_COMPLETED]: { icon: CheckCheck, color: "text-green-600", bg: "bg-green-100", borderColor: "border-l-green-500" },
+   213→   213→  [AUDIT_ACTIONS.BOOKING_NO_SHOW]: { icon: UserX, color: "text-amber-600", bg: "bg-amber-100", borderColor: "border-l-amber-500" },
+   214→   214→};
+   215→   215→
+   216→   216→function getActivityDescription(n: ActivityNotification): string {
+   217→   217→  const patient = n.patientName ?? "Patient";
+   218→   218→  switch (n.action) {
+   219→   219→    case AUDIT_ACTIONS.BOOKING_CREATED:
+   220→   220→      return `New booking for ${patient}`;
+   221→   221→    case AUDIT_ACTIONS.BOOKING_CANCELLED:
+   222→   222→      return `Booking cancelled for ${patient}`;
+   223→   223→    case AUDIT_ACTIONS.BOOKING_CHECKED_IN:
+   224→   224→      return `${patient} checked in`;
+   225→   225→    case AUDIT_ACTIONS.BOOKING_COMPLETED:
+   226→   226→      return `${patient}'s appointment completed`;
+   227→   227→    case AUDIT_ACTIONS.BOOKING_NO_SHOW:
+   228→   228→      return `${patient} did not show up`;
+   229→   229→    default:
+   230→   230→      return n.action;
+   231→   231→  }
+   232→   232→}
+   233→   233→
+   234→   234→function RecentActivitySection({ clinicId }: { clinicId: string | null }) {
+   235→   235→  const [notifications, setNotifications] = useState<ActivityNotification[]>([]);
+   236→   236→  const [loading, setLoading] = useState(true);
+   237→   237→
+   238→   238→  useEffect(() => {
+   239→   239→    if (!clinicId) return;
+   240→   240→    fetch(`/api/staff/notifications?clinicId=${clinicId}`)
+   241→   241→      .then((res) => (res.ok ? res.json() : null))
+   242→   242→      .then((json) => {
+   243→   243→        if (json) setNotifications(json.notifications.slice(0, 5));
+   244→   244→      })
+   245→   245→      .catch(() => {})
+   246→   246→      .finally(() => setLoading(false));
+   247→   247→  }, [clinicId]);
+   248→   248→
+   249→   249→  return (
+   250→   250→    <Card className="border-border/50 shadow-sm overflow-hidden">
+   251→   251→      {/* Subtle gradient header strip */}
+   252→   252→      <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+   253→   253→      <CardHeader className="pb-3">
+   254→   254→        <div className="flex items-center justify-between">
+   255→   255→          <div className="flex items-center gap-2">
+   256→   256→            <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+   257→   257→              <Bell className="size-4 text-emerald-600" />
+   258→   258→            </div>
+   259→   259→            <div>
+   260→   260→              <CardTitle className="text-base">Recent Activity</CardTitle>
+   261→   261→              <CardDescription className="text-xs">
+   262→   262→                Latest booking events
+   263→   263→              </CardDescription>
+   264→   264→            </div>
+   265→   265→          </div>
+   266→   266→        </div>
+   267→   267→      </CardHeader>
+   268→   268→      <CardContent className="px-4 pb-4">
+   269→   269→        {loading ? (
+   270→   270→          <div className="space-y-3">
+   271→   271→            {[1, 2, 3].map((i) => (
+   272→   272→              <Skeleton key={i} className="h-12 rounded-lg" />
+   273→   273→            ))}
+   274→   274→          </div>
+   275→   275→        ) : notifications.length === 0 ? (
+   276→   276→          <div className="flex flex-col items-center justify-center py-6 text-center">
+   277→   277→            <div className="size-10 rounded-full bg-muted/50 flex items-center justify-center mb-2">
+   278→   278→              <Bell className="size-4 text-muted-foreground" />
+   279→   279→            </div>
+   280→   280→            <p className="text-sm text-muted-foreground">No recent activity</p>
+   281→   281→          </div>
+   282→   282→        ) : (
+   283→   283→          <div className="space-y-1">
+   284→   284→            {notifications.map((n) => {
+   285→   285→              const cfg = ACTIVITY_ICON_MAP[n.action];
+   286→   286→              const Icon = cfg?.icon ?? Bell;
+   287→   287→              return (
+   288→   288→                <div
+   289→   289→                  key={n.id}
+   290→   290→                  className={`
+   291→   291→                    flex items-center gap-3 p-2.5 rounded-lg border-l-2
+   292→   292→                    hover:bg-muted/50 transition-colors duration-150
+   293→   293→                    ${cfg?.borderColor ?? "border-l-muted-foreground/30"}
+   294→   294→                  `}
+   295→   295→                >
+   296→   296→                  <div
+   297→   297→                    className={`size-7 rounded-md flex items-center justify-center shrink-0 ${
+   298→   298→                      cfg?.bg ?? "bg-muted"
+   299→   299→                    }`}
+   300→   300→                  >
+   301→   301→                    <Icon className={`size-3.5 ${cfg?.color ?? "text-muted-foreground"}`} />
+   302→   302→                  </div>
+   303→   303→                  <div className="flex-1 min-w-0">
+   304→   304→                    <p className="text-sm text-foreground truncate">
+   305→   305→                      {getActivityDescription(n)}
+   306→   306→                    </p>
+   307→   307→                    <p className="text-xs text-muted-foreground truncate">
+   308→   308→                      {n.providerName && <span>{n.providerName}</span>}
+   309→   309→                      {n.providerName && n.serviceName && <span> &middot; </span>}
+   310→   310→                      {n.serviceName && <span>{n.serviceName}</span>}
+   311→   311→                    </p>
+   312→   312→                  </div>
+   313→   313→                  <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+   314→   314→                    {formatDistanceToNow(new Date(n.createdAt), {
+   315→   315→                      addSuffix: true,
+   316→   316→                    })}
+   317→   317→                  </span>
+   318→   318→                </div>
+   319→   319→              );
+   320→   320→            })}
+   321→   321→            <Link
+   322→   322→              href="/staff/dashboard/activity"
+   323→   323→              className="w-full flex items-center justify-center gap-1 pt-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+   324→   324→            >
+   325→   325→              View all
+   326→   326→              <ArrowRight className="size-3" />
+   327→   327→            </Link>
+   328→   328→          </div>
+   329→   329→        )}
+   330→   330→      </CardContent>
+   331→   331→    </Card>
+   332→   332→  );
+   333→   333→}
+   334→   334→
+   335→   335→export default function DashboardPage() {
+   336→   336→  const { data: session, status } = useSession();
+   337→   337→  const router = useRouter();
+   338→   338→  const [data, setData] = useState<DashboardData | null>(null);
+   339→   339→  const [loading, setLoading] = useState(true);
+   340→   340→  const [error, setError] = useState<string | null>(null);
+   341→   341→
+   342→   342→  const user = session?.user as ClinicBookSessionUser | undefined;
+   343→   343→
+   344→   344→  const fetchDashboard = useCallback(async () => {
+   345→   345→    if (!user?.clinicId) return;
+   346→   346→    setLoading(true);
+   347→   347→    setError(null);
+   348→   348→    try {
+   349→   349→      const res = await fetch(`/api/staff/dashboard?clinicId=${user.clinicId}`);
+   350→   350→      if (!res.ok) throw new Error("Failed to fetch dashboard");
+   351→   351→      const json = await res.json();
+   352→   352→      setData(json);
+   353→   353→    } catch (err) {
+   354→   354→      setError(err instanceof Error ? err.message : "Unknown error");
+   355→   355→    } finally {
+   356→   356→      setLoading(false);
+   357→   357→    }
+   358→   358→  }, [user?.clinicId]);
+   359→   359→
+   360→   360→  useEffect(() => {
+   361→   361→    if (status === "authenticated") fetchDashboard();
+   362→   362→  }, [status, fetchDashboard]);
+   363→   363→
+   364→   364→  if (status === "loading" || !user) {
+   365→   365→    return (
+   366→   366→      <div className="space-y-6">
+   367→   367→        <Skeleton className="h-8 w-64" />
+   368→   368→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   369→   369→          {[1, 2, 3, 4].map((i) => (
+   370→   370→            <Skeleton key={i} className="h-32 rounded-xl" />
+   371→   371→          ))}
+   372→   372→        </div>
+   373→   373→        <Skeleton className="h-80 rounded-xl" />
+   374→   374→      </div>
+   375→   375→    );
+   376→   376→  }
+   377→   377→
+   378→   378→  if (error) {
+   379→   379→    return (
+   380→   380→      <Card className="border-red-200 bg-red-50/30">
+   381→   381→        <CardContent className="flex flex-col items-center justify-center py-12">
+   382→   382→          <AlertTriangle className="size-8 text-red-400 mb-3" />
+   383→   383→          <p className="text-sm font-medium text-red-800">Failed to load dashboard</p>
+   384→   384→          <p className="text-xs text-red-600 mt-1">{error}</p>
+   385→   385→          <Button
+   386→   386→            variant="outline"
+   387→   387→            size="sm"
+   388→   388→            className="mt-4 cursor-pointer"
+   389→   389→            onClick={fetchDashboard}
+   390→   390→          >
+   391→   391→            <RefreshCw className="size-3.5 mr-2" />
+   392→   392→            Retry
+   393→   393→          </Button>
+   394→   394→        </CardContent>
+   395→   395→      </Card>
+   396→   396→    );
+   397→   397→  }
+   398→   398→
+   399→   399→  if (!data) return null;
+   400→   400→
+   401→   401→  return (
+   402→   402→    <div className="space-y-6 animate-in fade-in-0 duration-300">
+   403→   403→      {/* Page header */}
+   404→   404→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   405→   405→        <div>
+   406→   406→          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+   407→   407→            Dashboard
+   408→   408→          </h1>
+   409→   409→          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+   410→   410→            <Activity className="size-3.5" />
+   411→   411→            {data.today}
+   412→   412→          </p>
+   413→   413→        </div>
+   414→   414→        <div className="flex items-center gap-2">
+   415→   415→          <Button
+   416→   416→            variant="outline"
+   417→   417→            size="sm"
+   418→   418→            className="cursor-pointer"
+   419→   419→            onClick={() => router.push("/staff/dashboard/calendar")}
+   420→   420→          >
+   421→   421→            <CalendarDays className="size-3.5 mr-2" />
+   422→   422→            Calendar
+   423→   423→          </Button>
+   424→   424→          <Button
+   425→   425→            size="sm"
+   426→   426→            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 cursor-pointer"
+   427→   427→            onClick={() => router.push("/staff/dashboard/book")}
+   428→   428→          >
+   429→   429→            <CalendarPlus className="size-3.5 mr-2" />
+   430→   430→            Manual Booking
+   431→   431→          </Button>
+   432→   432→        </div>
+   433→   433→      </div>
+   434→   434→
+   435→   435→      {/* Stat cards */}
+   436→   436→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   437→   437→        <StatCard
+   438→   438→          title="Today's Appointments"
+   439→   439→          value={data.stats.todayAppointments}
+   440→   440→          subtitle={`${data.stats.bookedToday} of ${data.stats.totalSlotsToday} slots filled`}
+   441→   441→          icon={CalendarDays}
+   442→   442→          gradient="bg-gradient-to-r from-emerald-500 to-teal-500"
+   443→   443→          iconBg="bg-emerald-100 text-emerald-600"
+   444→   444→          trend={`${data.stats.utilizationPercent}% utilization`}
+   445→   445→        />
+   446→   446→        <StatCard
+   447→   447→          title="Checked In"
+   448→   448→          value={data.todayAppointments.filter(a => a.status === "CHECKED_IN").length}
+   449→   449→          subtitle="Currently waiting"
+   450→   450→          icon={UserCheck}
+   451→   451→          gradient="bg-gradient-to-r from-blue-500 to-indigo-500"
+   452→   452→          iconBg="bg-blue-100 text-blue-600"
+   453→   453→        />
+   454→   454→        <StatCard
+   455→   455→          title="Upcoming"
+   456→   456→          value={data.stats.upcomingCount}
+   457→   457→          subtitle="Appointments in next 7 days"
+   458→   458→          icon={Clock}
+   459→   459→          gradient="bg-gradient-to-r from-amber-500 to-orange-500"
+   460→   460→          iconBg="bg-amber-100 text-amber-600"
+   461→   461→        />
+   462→   462→        <StatCard
+   463→   463→          title="Total Bookings"
+   464→   464→          value={data.stats.totalBookings}
+   465→   465→          subtitle={`${data.stats.completedCount} completed · ${data.stats.cancelledCount} cancelled · ${data.stats.noShowCount} no-shows`}
+   466→   466→          icon={BarChart3}
+   467→   467→          gradient="bg-gradient-to-r from-purple-500 to-pink-500"
+   468→   468→          iconBg="bg-purple-100 text-purple-600"
+   469→   469→        />
+   470→   470→      </div>
+   471→   471→
+   472→   472→      {/* Two-column layout */}
+   473→   473→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+   474→   474→        {/* Today's schedule — takes 2 columns */}
+   475→   475→        <Card className="lg:col-span-2 border-border/50 shadow-sm">
+   476→   476→          <CardHeader className="pb-3">
+   477→   477→            <div className="flex items-center justify-between">
+   478→   478→              <div className="flex items-center gap-2">
+   479→   479→                <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+   480→   480→                  <Activity className="size-4 text-emerald-600" />
+   481→   481→                </div>
+   482→   482→                <div>
+   483→   483→                  <CardTitle className="text-base">Today&apos;s Schedule</CardTitle>
+   484→   484→                  <CardDescription className="text-xs">
+   485→   485→                    {data.stats.todayAppointments} appointment{data.stats.todayAppointments !== 1 ? "s" : ""} today
+   486→   486→                  </CardDescription>
+   487→   487→                </div>
+   488→   488→              </div>
+   489→   489→              <Button
+   490→   490→                variant="ghost"
+   491→   491→                size="sm"
+   492→   492→                className="text-xs cursor-pointer"
+   493→   493→                onClick={() => router.push("/staff/dashboard/appointments")}
+   494→   494→              >
+   495→   495→                View all
+   496→   496→                <ArrowRight className="size-3 ml-1" />
+   497→   497→              </Button>
+   498→   498→            </div>
+   499→   499→          </CardHeader>
+   500→   500→          <CardContent className="px-4 pb-4">
+   501→   501→            {loading ? (
+   502→   502→              <div className="space-y-3">
+   503→   503→                {[1, 2, 3].map((i) => (
+   504→   504→                  <Skeleton key={i} className="h-16 rounded-xl" />
+   505→   505→                ))}
+   506→   506→              </div>
+   507→   507→            ) : data.todayAppointments.length === 0 ? (
+   508→   508→              <EmptyState
+   509→   509→                icon={CalendarDays}
+   510→   510→                title="No appointments today"
+   511→   511→                description="Your schedule is clear. Use Manual Booking to add one."
+   512→   512→              />
+   513→   513→            ) : (
+   514→   514→              <div className="space-y-2 max-h-[420px] overflow-y-auto custom-scrollbar">
+   515→   515→                {data.todayAppointments.map((apt) => (
+   516→   516→                  <AppointmentRow key={apt.id} apt={apt} />
+   517→   517→                ))}
+   518→   518→              </div>
+   519→   519→            )}
+   520→   520→          </CardContent>
+   521→   521→        </Card>
+   522→   522→
+   523→   523→        {/* Quick actions + summary */}
+   524→   524→        <div className="space-y-4">
+   525→   525→          {/* Quick actions */}
+   526→   526→          <Card className="border-border/50 shadow-sm">
+   527→   527→            <CardHeader className="pb-3">
+   528→   528→              <CardTitle className="text-base flex items-center gap-2">
+   529→   529→                <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+   530→   530→                  <TrendingUp className="size-4 text-emerald-600" />
+   531→   531→                </div>
+   532→   532→                Quick Actions
+   533→   533→              </CardTitle>
+   534→   534→            </CardHeader>
+   535→   535→            <CardContent className="space-y-2 px-4 pb-4">
+   536→   536→              <button
+   537→   537→                onClick={() => router.push("/staff/dashboard/book")}
+   538→   538→                className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-colors text-left cursor-pointer group"
+   539→   539→              >
+   540→   540→                <div className="size-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+   541→   541→                  <CalendarPlus className="size-4 text-white" />
+   542→   542→                </div>
+   543→   543→                <div>
+   544→   544→                  <p className="text-sm font-medium text-emerald-900">New Booking</p>
+   545→   545→                  <p className="text-xs text-emerald-700/70">Book for a phone-in patient</p>
+   546→   546→                </div>
+   547→   547→                <ArrowRight className="size-4 text-emerald-400 ml-auto" />
+   548→   548→              </button>
+   549→   549→
+   550→   550→              <button
+   551→   551→                onClick={() => router.push("/staff/dashboard/calendar")}
+   552→   552→                className="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition-colors text-left cursor-pointer group"
+   553→   553→              >
+   554→   554→                <div className="size-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+   555→   555→                  <CalendarDays className="size-4 text-white" />
+   556→   556→                </div>
+   557→   557→                <div>
+   558→   558→                  <p className="text-sm font-medium text-blue-900">View Calendar</p>
+   559→   559→                  <p className="text-xs text-blue-700/70">See daily schedule grid</p>
+   560→   560→                </div>
+   561→   561→                <ArrowRight className="size-4 text-blue-400 ml-auto" />
+   562→   562→              </button>
+   563→   563→
+   564→   564→              <button
+   565→   565→                onClick={() => router.push("/staff/dashboard/slots")}
+   566→   566→                className="w-full flex items-center gap-3 p-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/60 transition-colors text-left cursor-pointer group"
+   567→   567→              >
+   568→   568→                <div className="size-9 rounded-lg bg-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+   569→   569→                  <Clock className="size-4 text-white" />
+   570→   570→                </div>
+   571→   571→                <div>
+   572→   572→                  <p className="text-sm font-medium text-amber-900">Manage Slots</p>
+   573→   573→                  <p className="text-xs text-amber-700/70">Block or free time slots</p>
+   574→   574→                </div>
+   575→   575→                <ArrowRight className="size-4 text-amber-400 ml-auto" />
+   576→   576→              </button>
+   577→   577→            </CardContent>
+   578→   578→          </Card>
+   579→   579→
+   580→   580→          {/* Performance summary */}
+   581→   581→          <Card className="border-border/50 shadow-sm">
+   582→   582→            <CardHeader className="pb-3">
+   583→   583→              <CardTitle className="text-base flex items-center gap-2">
+   584→   584→                <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+   585→   585→                  <BarChart3 className="size-4 text-emerald-600" />
+   586→   586→                </div>
+   587→   587→                Performance
+   588→   588→              </CardTitle>
+   589→   589→            </CardHeader>
+   590→   590→            <CardContent className="px-4 pb-4">
+   591→   591→              {/* Utilization bar */}
+   592→   592→              <div className="space-y-4">
+   593→   593→                <div>
+   594→   594→                  <div className="flex items-center justify-between text-xs mb-1.5">
+   595→   595→                    <span className="font-medium text-muted-foreground">Today&apos;s Utilization</span>
+   596→   596→                    <span className="font-semibold text-foreground">{data.stats.utilizationPercent}%</span>
+   597→   597→                  </div>
+   598→   598→                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+   599→   599→                    <div
+   600→   600→                      className={`h-full rounded-full transition-all duration-700 ${
+   601→   601→                        data.stats.utilizationPercent >= 80
+   602→   602→                          ? "bg-emerald-500"
+   603→   603→                          : data.stats.utilizationPercent >= 50
+   604→   604→                          ? "bg-amber-500"
+   605→   605→                          : "bg-red-400"
+   606→   606→                      }`}
+   607→   607→                      style={{ width: `${Math.min(data.stats.utilizationPercent, 100)}%` }}
+   608→   608→                    />
+   609→   609→                  </div>
+   610→   610→                </div>
+   611→   611→
+   612→   612→                <div className="grid grid-cols-2 gap-3">
+   613→   613→                  <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
+   614→   614→                    <div className="flex items-center gap-1.5 mb-1">
+   615→   615→                      <CheckCircle2 className="size-3.5 text-emerald-600" />
+   616→   616→                      <span className="text-xs text-emerald-700 font-medium">Completed</span>
+   617→   617→                    </div>
+   618→   618→                    <p className="text-xl font-bold text-emerald-800">{data.stats.completedCount}</p>
+   619→   619→                  </div>
+   620→   620→                  <div className="p-3 rounded-xl bg-red-50/60 border border-red-100">
+   621→   621→                    <div className="flex items-center gap-1.5 mb-1">
+   622→   622→                      <XCircle className="size-3.5 text-red-500" />
+   623→   623→                      <span className="text-xs text-red-700 font-medium">Cancelled</span>
+   624→   624→                    </div>
+   625→   625→                    <p className="text-xl font-bold text-red-800">{data.stats.cancelledCount}</p>
+   626→   626→                  </div>
+   627→   627→                  <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+   628→   628→                    <div className="flex items-center gap-1.5 mb-1">
+   629→   629→                      <AlertTriangle className="size-3.5 text-amber-600" />
+   630→   630→                      <span className="text-xs text-amber-700 font-medium">No-shows</span>
+   631→   631→                    </div>
+   632→   632→                    <p className="text-xl font-bold text-amber-800">{data.stats.noShowCount}</p>
+   633→   633→                  </div>
+   634→   634→                  <div className="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
+   635→   635→                    <div className="flex items-center gap-1.5 mb-1">
+   636→   636→                      <Phone className="size-3.5 text-sky-600" />
+   637→   637→                      <span className="text-xs text-sky-700 font-medium">Available</span>
+   638→   638→                    </div>
+   639→   639→                    <p className="text-xl font-bold text-sky-800">{data.stats.availableSlotsToday}</p>
+   640→   640→                  </div>
+   641→   641→                </div>
+   642→   642→              </div>
+   643→   643→            </CardContent>
+   644→   644→          </Card>
+   645→   645→        </div>
+   646→   646→      </div>
+   647→   647→
+   648→   648→      {/* Recent Activity */}
+   649→   649→      <RecentActivitySection clinicId={user.clinicId} />
+   650→   650→    </div>
+   651→   651→  );
+   652→   652→}

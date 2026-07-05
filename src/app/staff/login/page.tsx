@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 export default function StaffLoginPage() {
   const router = useRouter();
@@ -28,6 +29,8 @@ export default function StaffLoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const { toast } = useToast();
   const [error, setError] = useState<string | null>(
     errorParam === "CredentialsSignin"
       ? "Invalid email or password"
@@ -61,12 +64,12 @@ export default function StaffLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50/80 via-background to-teal-50/40">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50/80 via-background to-teal-50/40 bg-gradient-animated">
       {/* Top accent bar */}
       <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600" />
 
       {/* Main content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="flex-1 flex items-center justify-center px-4 py-12 relative">
         <div className="w-full max-w-md">
           {/* Logo + back link */}
           <div className="text-center mb-8">
@@ -90,8 +93,17 @@ export default function StaffLoginPage() {
             </p>
           </div>
 
+          {/* Decorative heartbeat SVG behind card */}
+          <svg className="absolute pointer-events-none" style={{ opacity: 0.04, top: '25%', left: '50%', transform: 'translateX(-50%)' }} width="500" height="120" viewBox="0 0 500 120" fill="none" aria-hidden="true">
+            <path d="M0 60 L100 60 L120 60 L140 20 L160 100 L180 10 L200 110 L220 60 L240 60 L350 60 L370 60 L390 20 L410 100 L430 10 L450 110 L470 60 L490 60 L500 60" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {/* Decorative medical cross */}
+          <div className="absolute pointer-events-none" style={{ opacity: 0.03, top: '15%', right: '18%' }} aria-hidden="true">
+            <svg width="120" height="120" viewBox="0 0 120 120" fill="#059669"><rect x="40" y="0" width="40" height="120" rx="6" /><rect x="0" y="40" width="120" height="40" rx="6" /></svg>
+          </div>
+
           {/* Login card */}
-          <div className="bg-card rounded-2xl shadow-xl shadow-emerald-900/5 border border-border/60 p-8">
+          <div className={`relative bg-card rounded-2xl shadow-xl border border-border/60 p-8 transition-shadow duration-300 ${passwordFocused ? 'shadow-emerald-600/10 shadow-2xl shadow-emerald-900/5' : 'shadow-emerald-900/5'} animate-card-mount`}>
             {/* Card header */}
             <div className="flex items-center gap-3 mb-6">
               <div className="size-10 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -148,7 +160,7 @@ export default function StaffLoginPage() {
               </div>
 
               {/* Password field */}
-              <div className="space-y-2">
+              <div className="space-y-2" onFocus={() => setPasswordFocused(true)} onBlur={() => setPasswordFocused(false)}>
                 <Label
                   htmlFor="password"
                   className="text-sm font-medium text-foreground"
@@ -182,6 +194,16 @@ export default function StaffLoginPage() {
                     )}
                   </button>
                 </div>
+                {/* Forgot password link */}
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => toast({ title: "Not available", description: "Password reset is not available in the demo" })}
+                    className="text-xs text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
               </div>
 
               {/* Submit button */}
@@ -191,10 +213,10 @@ export default function StaffLoginPage() {
                 className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition-all cursor-pointer"
               >
                 {isLoading ? (
-                  <>
+                  <span className="inline-flex items-center">
                     <Loader2 className="size-4 mr-2 animate-spin" />
-                    Signing in...
-                  </>
+                    <span className="skeleton-shimmer rounded bg-transparent text-white">Signing in...</span>
+                  </span>
                 ) : (
                   "Sign in"
                 )}

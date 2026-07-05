@@ -37,10 +37,10 @@ interface PageProps {
 // Helpers
 // =============================================================================
 
-function RatingStars({ rating, size = 4 }: { rating: number; size?: number }) {
+function RatingStars({ rating, size = 4, shimmer = false }: { rating: number; size?: number; shimmer?: boolean }) {
   const filledCount = Math.round(rating);
   return (
-    <div className="flex items-center gap-0.5">
+    <div className={`flex items-center gap-0.5 ${shimmer ? 'star-shimmer' : ''}`}>
       {Array.from({ length: 5 }, (_, i) => (
         <Star
           key={i}
@@ -203,18 +203,30 @@ export default async function ProviderProfilePage({ params }: PageProps) {
       {/* ===== Main Content ===== */}
       <main className="flex-1 w-full px-4 py-8 animate-in fade-in duration-500">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Back link */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="size-4" />
-            Back to Search
-          </Link>
+          {/* Back link — Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-foreground transition-colors cursor-pointer">Home</Link>
+            <span className="text-border">/</span>
+            <span>Search</span>
+            <span className="text-border">/</span>
+            <span className="text-foreground font-medium">{provider.firstName} {provider.lastName}</span>
+          </nav>
+
+          {/* Back link (hidden, replaced by breadcrumb) */}
+          <span className="sr-only">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="size-4" />
+              Back to Search
+            </Link>
+          </span>
 
           {/* ===== Hero Section ===== */}
           <Card className="overflow-hidden shadow-md">
-            <div className="h-2 rounded-t-lg bg-gradient-to-r from-emerald-400 to-teal-500" />
+            {/* Parallax hero gradient — CSS only */}
+            <div className="h-2 rounded-t-lg bg-gradient-to-r from-emerald-400 to-teal-500 bg-[length:200%_200%] bg-gradient-animated" />
             <CardContent className="p-6 space-y-4">
               <div className="flex flex-col sm:flex-row gap-5">
                 {/* Avatar */}
@@ -266,7 +278,7 @@ export default async function ProviderProfilePage({ params }: PageProps) {
 
                   {/* Rating */}
                   <div className="flex items-center gap-3">
-                    <RatingStars rating={avgOverall} size={5} />
+                    <RatingStars rating={avgOverall} size={5} shimmer />
                     <span className="text-lg font-semibold text-foreground">
                       {avgOverall.toFixed(1)}
                     </span>
@@ -424,7 +436,7 @@ export default async function ProviderProfilePage({ params }: PageProps) {
                     {provider.reviews.map((review) => (
                       <div
                         key={review.id}
-                        className="rounded-lg border border-border p-4 space-y-2 hover:bg-muted/20 transition-colors"
+                        className="rounded-lg border border-border p-4 space-y-2 hover:bg-muted/20 transition-all duration-200 border-l-2 hover:border-l-4 hover:border-l-emerald-400"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">

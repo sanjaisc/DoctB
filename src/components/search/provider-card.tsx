@@ -178,7 +178,7 @@ export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: 
 
   return (
     <Card
-      className={`w-full max-w-3xl mx-auto transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:border-l-4 hover:border-l-emerald-400 hover:bg-gradient-to-br hover:from-white hover:to-emerald-50/40 py-0 gap-0 animate-in fade-in-0 slide-in-from-bottom-2`}
+      className={`w-full max-w-3xl mx-auto transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:border-l-4 hover:border-l-emerald-400 hover:bg-gradient-to-br hover:from-white hover:to-emerald-50/40 py-0 gap-0 stagger-fade-in`}
       style={{ animationDelay: `${staggerDelay}ms`, animationFillMode: "both" }}
     >
       <CardContent className="p-4 space-y-3">

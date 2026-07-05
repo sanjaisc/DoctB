@@ -197,19 +197,31 @@ export default async function ClinicDetailPage({ params }: PageProps) {
       {/* ===== Main Content ===== */}
       <main className="flex-1 w-full px-4 py-8 animate-in fade-in duration-500">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Back link */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="size-4" />
-            Back to Search
-          </Link>
+          {/* Back link — Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-foreground transition-colors cursor-pointer">Home</Link>
+            <span className="text-border">/</span>
+            <span>Clinics</span>
+            <span className="text-border">/</span>
+            <span className="text-foreground font-medium">{clinic.name}</span>
+          </nav>
+
+          <span className="sr-only">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="size-4" />
+              Back to Search
+            </Link>
+          </span>
 
           {/* ===== Clinic Header Card ===== */}
           <Card className="overflow-hidden shadow-md">
+            {/* Subtle gradient overlay on header */}
+            <div className="absolute inset-0 h-24 bg-gradient-to-b from-white/30 to-transparent pointer-events-none z-10 rounded-t-lg" />
             {/* Gradient strip */}
-            <div className="h-2 rounded-t-lg bg-gradient-to-r from-emerald-400 to-teal-500" />
+            <div className="h-2 rounded-t-lg bg-gradient-to-r from-emerald-400 to-teal-500 bg-[length:200%_200%] bg-gradient-animated relative" />
             <CardContent className="p-6 space-y-4">
               {/* Name + Verified Badge + Tagline */}
               <div className="space-y-1">
@@ -235,7 +247,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
               {/* Contact info — individual cards */}
               <div className="grid gap-3 sm:grid-cols-2">
                 {/* Address */}
-                <div className="flex items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50 cursor-default">
+                <div className="flex items-start gap-3 rounded-lg border border-border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-md cursor-default">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50">
                     <MapPin className="size-4 text-emerald-600" />
                   </div>
@@ -246,7 +258,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
 
                 {/* Phone */}
                 {clinic.phoneNumber && (
-                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50">
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-md">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50">
                       <Phone className="size-4 text-emerald-600" />
                     </div>
@@ -261,7 +273,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
 
                 {/* Email */}
                 {clinic.email && (
-                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50">
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-md">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50">
                       <Mail className="size-4 text-emerald-600" />
                     </div>
@@ -276,7 +288,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
 
                 {/* Website */}
                 {clinic.website && (
-                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50">
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-md">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50">
                       <Globe className="size-4 text-emerald-600" />
                     </div>
@@ -415,7 +427,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
                         <Badge
                           key={ci.insuranceId}
                           variant="outline"
-                          className="border-emerald-300 text-emerald-700 bg-emerald-50/50 px-3 py-1 text-sm hover:bg-emerald-100/60 transition-colors cursor-default"
+                          className="border-emerald-300 text-emerald-700 bg-emerald-50/50 px-3 py-1 text-sm hover:bg-emerald-100/60 hover:scale-105 transition-all cursor-default"
                         >
                           {ci.insurance.name}
                         </Badge>
@@ -449,7 +461,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
                         <Badge
                           key={ca.amenityId}
                           variant="outline"
-                          className="border-emerald-300 text-emerald-700 bg-emerald-50/50 px-3 py-1 text-sm hover:bg-emerald-100/60 transition-colors cursor-default"
+                          className="border-emerald-300 text-emerald-700 bg-emerald-50/50 px-3 py-1 text-sm hover:bg-emerald-100/60 hover:scale-105 transition-all cursor-default"
                         >
                           {ca.amenity.name}
                         </Badge>
