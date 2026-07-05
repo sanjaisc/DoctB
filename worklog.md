@@ -2055,5 +2055,30 @@ Stage Summary:
 - **Second most severe**: Lock cleanup race condition (slot could be re-locked during cleanup)
 - **Lowest severity**: Lock key timing-safe comparison (lockKeys are session-generated, not user-controlled, but still best practice)
 - **Overall assessment**: The core business logic is well-implemented. The two-phase locking mechanism is correct with proper DB constraints (P2002 unique on slotId). Token security is strong (256-bit entropy, SHA-256 storage, timing-safe verification). RBAC middleware correctly enforces role hierarchy.
+
 ---
+Task ID: Audit-Phase-4
+Agent: Main Orchestrator
+Task: Phase 4 — Documentation & Deployment: README.md, .env.example, Stripe CLI setup guide
+
+Work Log:
+- Read full project structure: 28 API routes, 20 pages, 9 lib modules, 45 shadcn/ui components
+- Read worklog history (Phase 1 & Phase 2 audit findings)
+- Read all security-critical source files: auth.ts, crypto.ts, middleware.ts, cache.ts, enums.ts, constants.ts, schema.prisma
+- Catalogued every Stripe-related data model field (Appointment, AppointmentLedger, SystemConfig) and enum type
+- Created comprehensive README.md (~350 lines) covering: overview, tech stack, project structure, getting started, database schema, auth/RBAC, booking flow, API route table, security, caching, known limitations
+- Created .env.example with all required variables (DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, IP_HASH_SALT) and commented-out Stripe placeholders
+- Created docs/STRIPE_SETUP.md (~280 lines) covering: what's already built, Stripe CLI installation (macOS/Windows), authentication, webhook signing secret, environment variables, 7-step implementation roadmap with code examples, payment flow diagrams, security checklist, Stripe CLI testing commands, production migration guide
+
+Stage Summary:
+- **3 documentation files created**:
+  1. `/README.md` — Comprehensive project documentation
+  2. `/.env.example` — Environment variable template
+  3. `/docs/STRIPE_SETUP.md` — Stripe integration guide with CLI setup
+- **No code changes** — documentation-only phase per audit constraint
+- **All 4 audit phases now complete**:
+  - Phase 1: 130 TS errors → 0 (8 root causes)
+  - Phase 2: 3 security bugs found & fixed
+  - Phase 3: Skipped per user request (deferred to feature work)
+  - Phase 4: README + .env.example + Stripe guide delivered
 ---
