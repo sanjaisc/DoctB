@@ -13,10 +13,7 @@ export function PublicFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           {/* Column 1: Brand */}
           <div className="col-span-2 md:col-span-1 space-y-3">
-            <DoctALogo height={28} />
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Your trusted medical appointment platform
-            </p>
+            <DoctALogo height={80} className="!w-full h-auto" />
             {/* Social Media Icons */}
             <div className="flex items-center gap-2.5 pt-1">
               {/* Twitter/X */}
