@@ -2172,3 +2172,18 @@ Stage Summary:
 - **Verified via agent-browser**: Dr. Aisha Patel's page jumps from empty Jun 29 week directly to populated Jul 6 week with no flash
 - Lint passes, no runtime errors
 ---
+Task ID: 9
+Agent: Main Agent
+Task: Restyle provider card slots — split date/time/modality into 3 lines, MORE button in same row
+
+Work Log:
+- Replaced single `formatSlotTime` with `formatSlotDate` (EEE, MMM d) and `formatSlotTimeOnly` (h:mm a)
+- Restructured slot buttons: removed Calendar icon + horizontal layout, now vertical stack (date → time → modality badge)
+- Made MORE button `self-stretch` to match slot button height, sits in same flex row
+- Removed unused `Calendar` import
+
+Stage Summary:
+- **1 file modified**: `src/components/search/provider-card.tsx`
+- **Verified via agent-browser**: Each slot shows date/time/modality on 3 lines; MORE button appears inline with the 3 slot buttons
+- Lint passes cleanly
+---

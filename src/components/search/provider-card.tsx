@@ -11,7 +11,6 @@ import {
   Building2,
   Quote,
   Phone,
-  Calendar,
   ChevronRight,
   ShieldCheck,
   Navigation,
@@ -90,8 +89,12 @@ function RatingStars({ rating }: { rating: number }) {
   );
 }
 
-function formatSlotTime(startTime: string): string {
-  return format(new Date(startTime), "EEE, MMM d · h:mm a");
+function formatSlotDate(startTime: string): string {
+  return format(new Date(startTime), "EEE, MMM d");
+}
+
+function formatSlotTimeOnly(startTime: string): string {
+  return format(new Date(startTime), "h:mm a");
 }
 
 function ModalityBadge({ modality }: { modality: string }) {
@@ -270,7 +273,7 @@ export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: 
               <h4 className="text-sm font-medium text-foreground">
                 Available Times
               </h4>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-stretch">
                 {provider.earliestSlots.map((slot) => {
                   const isVideo = slot.modality === "VIDEO";
                   return (
@@ -278,25 +281,25 @@ export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: 
                       key={slot.id}
                       type="button"
                       onClick={() => handleSlotClick(slot.id)}
-                      className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all duration-200 hover:shadow-sm animate-pulse-subtle
+                      className={`cursor-pointer inline-flex flex-col items-start rounded-lg border px-3 py-2 text-sm transition-all duration-200 hover:shadow-sm animate-pulse-subtle
                         ${isVideo
                           ? "border-l-4 border-l-blue-400 border-border hover:bg-blue-50 hover:border-blue-300"
                           : "border-l-4 border-l-emerald-400 border-border hover:bg-emerald-50 hover:border-emerald-300"
                         }`}
                     >
-                      <Calendar className="size-4 text-muted-foreground shrink-0" />
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="text-foreground">
-                          {formatSlotTime(slot.startTime)}
-                        </span>
-                        <ModalityBadge modality={slot.modality} />
-                      </div>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {formatSlotDate(slot.startTime)}
+                      </span>
+                      <span className="text-sm font-semibold text-foreground mt-0.5">
+                        {formatSlotTimeOnly(slot.startTime)}
+                      </span>
+                      <ModalityBadge modality={slot.modality} />
                     </button>
                   );
                 })}
                 <Link
                   href={`/providers/${provider.slug}`}
-                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-dashed border-muted-foreground/30 px-4 py-2 text-sm font-medium text-emerald-700 transition-all duration-200 hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-sm"
+                  className="cursor-pointer inline-flex items-center gap-1 self-stretch rounded-lg border border-dashed border-muted-foreground/30 px-4 text-sm font-medium text-emerald-700 transition-all duration-200 hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-sm"
                 >
                   MORE
                   <ChevronRight className="size-4" />
