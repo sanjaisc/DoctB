@@ -54,8 +54,9 @@ export default function StaffLoginPage() {
         return;
       }
 
-      router.push(callbackUrl);
-      router.refresh();
+      // Use full page navigation to ensure session cookie is sent with the request.
+      // router.push can cause a race condition where the cookie isn't available yet.
+      window.location.href = callbackUrl;
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
