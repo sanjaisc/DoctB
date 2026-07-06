@@ -91,12 +91,16 @@ export async function GET(
 }
 
 // =============================================================================
-// PATCH — Update appointment status (state machine)
+// PATCH — Update appointment (status transition, contact details, or flags)
 // =============================================================================
 
 interface PatchBody {
-  status: string;
+  status?: string;
   cancellationReason?: string;
+  patientName?: string;
+  patientEmail?: string;
+  patientPhone?: string;
+  insuranceVerified?: boolean;
 }
 
 export async function PATCH(
@@ -123,37 +127,6 @@ export async function PATCH(
       );
     }
 
-    if (!body.status) {
-      return NextResponse.json(
-        { error: "Status is required" },
-        { status: 400 }
-      );
-    }
-
-    const newStatus = body.status as AppointmentStatus;
-
-    // Validate it's a real appointment status
-    if (!isValidAppointmentStatus(newStatus)) {
-      return NextResponse.json(
-        { error: `Invalid status: ${newStatus}` },
-        { status: 400 }
-      );
-    }
-
-    // Only allow these transitions via this endpoint
-    const allowedStatuses: AppointmentStatus[] = [
-      APPOINTMENT_STATUS.CHECKED_IN,
-      APPOINTMENT_STATUS.COMPLETED,
-      APPOINTMENT_STATUS.CANCELLED,
-      APPOINTMENT_STATUS.NO_SHOW,
-    ];
-    if (!allowedStatuses.includes(newStatus)) {
-      return NextResponse.json(
-        { error: `Cannot transition to ${newStatus} via this endpoint` },
-        { status: 400 }
-      );
-    }
-
     // Fetch current appointment
     const appointment = await db.appointment.findUnique({
       where: { id },
@@ -173,28 +146,83 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Validate state machine transition
-    const currentStatus = appointment.status as AppointmentStatus;
-    if (!canTransitionTo(currentStatus, newStatus)) {
-      return NextResponse.json(
-        {
-          error: `Cannot transition from ${currentStatus} to ${newStatus}`,
-          validTransitions: APPOINTMENT_TRANSITIONS[currentStatus] || [],
-        },
-        { status: 409 }
-      );
+    const updateData: Record<string, unknown> = {};
+
+    // ---- Contact detail updates ----
+    const hasContactUpdate =
+      body.patientName !== undefined ||
+      body.patientEmail !== undefined ||
+      body.patientPhone !== undefined;
+
+    if (hasContactUpdate) {
+      if (body.patientName !== undefined) {
+        const trimmed = body.patientName.trim();
+        if (!trimmed) {
+          return NextResponse.json({ error: "Patient name cannot be empty" }, { status: 400 });
+        }
+        updateData.patientName = trimmed;
+      }
+      if (body.patientEmail !== undefined) {
+        const trimmed = body.patientEmail.trim();
+        if (trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+          return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+        }
+        updateData.patientEmail = trimmed;
+      }
+      if (body.patientPhone !== undefined) {
+        updateData.patientPhone = body.patientPhone.trim();
+      }
     }
 
-    // Build update data
-    const updateData: Record<string, unknown> = {
-      status: newStatus,
-    };
+    // ---- Insurance verified flag ----
+    if (body.insuranceVerified !== undefined) {
+      updateData.insuranceVerified = body.insuranceVerified;
+    }
 
-    // Cancellation-specific fields
-    if (newStatus === APPOINTMENT_STATUS.CANCELLED) {
-      updateData.cancellationReason = body.cancellationReason || "CLINIC_CANCELLED";
-      updateData.cancelledAt = new Date();
-      updateData.cancelledBy = userId;
+    // ---- Status transition (existing logic) ----
+    if (body.status) {
+      const newStatus = body.status as AppointmentStatus;
+
+      if (!isValidAppointmentStatus(newStatus)) {
+        return NextResponse.json({ error: `Invalid status: ${newStatus}` }, { status: 400 });
+      }
+
+      const allowedStatuses: AppointmentStatus[] = [
+        APPOINTMENT_STATUS.CHECKED_IN,
+        APPOINTMENT_STATUS.COMPLETED,
+        APPOINTMENT_STATUS.CANCELLED,
+        APPOINTMENT_STATUS.NO_SHOW,
+      ];
+      if (!allowedStatuses.includes(newStatus)) {
+        return NextResponse.json(
+          { error: `Cannot transition to ${newStatus} via this endpoint` },
+          { status: 400 }
+        );
+      }
+
+      const currentStatus = appointment.status as AppointmentStatus;
+      if (!canTransitionTo(currentStatus, newStatus)) {
+        return NextResponse.json(
+          {
+            error: `Cannot transition from ${currentStatus} to ${newStatus}`,
+            validTransitions: APPOINTMENT_TRANSITIONS[currentStatus] || [],
+          },
+          { status: 409 }
+        );
+      }
+
+      updateData.status = newStatus;
+
+      if (newStatus === APPOINTMENT_STATUS.CANCELLED) {
+        updateData.cancellationReason = body.cancellationReason || "CLINIC_CANCELLED";
+        updateData.cancelledAt = new Date();
+        updateData.cancelledBy = userId;
+      }
+    }
+
+    // Nothing to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
     // Perform the update
@@ -212,7 +240,7 @@ export async function PATCH(
     });
 
     // Release slot on cancellation
-    if (newStatus === APPOINTMENT_STATUS.CANCELLED) {
+    if (body.status === APPOINTMENT_STATUS.CANCELLED) {
       await db.slot.update({
         where: { id: appointment.slotId },
         data: { status: SLOT_STATUS.AVAILABLE },
@@ -220,16 +248,24 @@ export async function PATCH(
     }
 
     // Audit log
-    const auditActionMap: Record<string, string> = {
-      [APPOINTMENT_STATUS.CHECKED_IN]: AUDIT_ACTIONS.BOOKING_CHECKED_IN,
-      [APPOINTMENT_STATUS.COMPLETED]: AUDIT_ACTIONS.BOOKING_COMPLETED,
-      [APPOINTMENT_STATUS.CANCELLED]: AUDIT_ACTIONS.BOOKING_CANCELLED,
-      [APPOINTMENT_STATUS.NO_SHOW]: AUDIT_ACTIONS.BOOKING_NO_SHOW,
-    };
+    let auditAction = "APPOINTMENT_UPDATED";
+    if (body.status) {
+      const auditActionMap: Record<string, string> = {
+        [APPOINTMENT_STATUS.CHECKED_IN]: AUDIT_ACTIONS.BOOKING_CHECKED_IN,
+        [APPOINTMENT_STATUS.COMPLETED]: AUDIT_ACTIONS.BOOKING_COMPLETED,
+        [APPOINTMENT_STATUS.CANCELLED]: AUDIT_ACTIONS.BOOKING_CANCELLED,
+        [APPOINTMENT_STATUS.NO_SHOW]: AUDIT_ACTIONS.BOOKING_NO_SHOW,
+      };
+      auditAction = auditActionMap[body.status] || "STATUS_CHANGED";
+    } else if (hasContactUpdate) {
+      auditAction = "PATIENT_DETAILS_EDITED";
+    } else if (body.insuranceVerified !== undefined) {
+      auditAction = "INSURANCE_VERIFIED_TOGGLED";
+    }
 
     createAuditLog({
       userId,
-      action: auditActionMap[newStatus] || "STATUS_CHANGED",
+      action: auditAction,
       targetType: "APPOINTMENT",
       targetId: id,
       appointmentId: id,

@@ -32,10 +32,14 @@ import {
   Hash,
   Bell,
   QrCode,
+  Pencil,
+  Check,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { QrCodeDisplay } from "@/components/qr-code-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -223,6 +227,14 @@ export default function AppointmentsPage() {
   const [noteContent, setNoteContent] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
+  // Patient edit mode in detail dialog
+  const [editingPatient, setEditingPatient] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editInsuranceVerified, setEditInsuranceVerified] = useState(false);
+  const [patientSaving, setPatientSaving] = useState(false);
+
   // Status transition
   const [transitioningId, setTransitioningId] = useState<string | null>(null);
 
@@ -359,11 +371,17 @@ export default function AppointmentsPage() {
     setDetailLoading(true);
     setDetail(null);
     setNoteContent("");
+    setEditingPatient(false);
     try {
       const res = await fetch(`/api/staff/appointments/${id}`);
       if (!res.ok) throw new Error("Failed to load appointment");
       const data = await res.json();
       setDetail(data);
+      // Populate edit fields
+      setEditName(data.patientName);
+      setEditEmail(data.patientEmail);
+      setEditPhone(data.patientPhone);
+      setEditInsuranceVerified(data.insuranceVerified ?? false);
     } catch {
       setDetail(null);
     } finally {
@@ -423,6 +441,37 @@ export default function AppointmentsPage() {
       toast.error("Failed to add note");
     } finally {
       setNoteSubmitting(false);
+    }
+  };
+
+  // Save patient contact details + insurance verified
+  const handleSavePatient = async () => {
+    if (!selectedId || !detail) return;
+    setPatientSaving(true);
+    try {
+      const body: Record<string, unknown> = {
+        patientName: editName,
+        patientEmail: editEmail,
+        patientPhone: editPhone,
+        insuranceVerified: editInsuranceVerified,
+      };
+      const res = await fetch(`/api/staff/appointments/${selectedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update patient details");
+      }
+      setEditingPatient(false);
+      // Refresh detail to get updated data
+      openDetail(selectedId);
+      toast.success("Patient details updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update patient details");
+    } finally {
+      setPatientSaving(false);
     }
   };
 
@@ -928,7 +977,11 @@ export default function AppointmentsPage() {
                       </p>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openDetail(apt.id)}
+                        className="flex items-center gap-2 text-left cursor-pointer hover:text-emerald-700 transition-colors w-full"
+                      >
                         <div className="size-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
                           <User className="size-3.5 text-emerald-600" />
                         </div>
@@ -938,7 +991,7 @@ export default function AppointmentsPage() {
                             {apt.patientEmail}
                           </p>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td className="py-3 px-4 hidden md:table-cell whitespace-nowrap">
                       <span className="text-sm">
@@ -1199,49 +1252,175 @@ export default function AppointmentsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Patient Info Card */}
                   <div className="rounded-lg border border-border/60 p-4 space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                        <User className="size-4 text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">{detail.patientName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {detail.patientType === "PEDIATRIC" ? (
-                            <span className="flex items-center gap-1">
-                              <Baby className="size-3" /> Pediatric
-                            </span>
-                          ) : (
-                            "Adult"
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="size-3.5 shrink-0" />
-                        <a href={`tel:${detail.patientPhone}`} className="hover:text-foreground transition-colors">
-                          {detail.patientPhone}
-                        </a>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="size-3.5 shrink-0" />
-                        <a href={`mailto:${detail.patientEmail}`} className="hover:text-foreground transition-colors truncate">
-                          {detail.patientEmail}
-                        </a>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="size-3.5 shrink-0" />
-                        <span>DOB: {format(parseISO(detail.patientDob), "MMM d, yyyy")}</span>
-                      </div>
-                      {detail.guardianName && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <User className="size-3.5 shrink-0" />
-                          <span>
-                            Guardian: {detail.guardianName} ({detail.guardianRelation})
-                          </span>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <User className="size-4 text-emerald-600" />
                         </div>
+                        <div>
+                          <p className="font-semibold text-sm">Patient</p>
+                          <p className="text-xs text-muted-foreground">
+                            {detail.patientType === "PEDIATRIC" ? (
+                              <span className="flex items-center gap-1">
+                                <Baby className="size-3" /> Pediatric
+                              </span>
+                            ) : (
+                              "Adult"
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      {!editingPatient ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="size-8 p-0 cursor-pointer text-muted-foreground hover:text-emerald-700"
+                          onClick={() => setEditingPatient(true)}
+                          title="Edit patient details"
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs cursor-pointer text-muted-foreground hover:text-red-600"
+                          onClick={() => {
+                            setEditingPatient(false);
+                            setEditName(detail.patientName);
+                            setEditEmail(detail.patientEmail);
+                            setEditPhone(detail.patientPhone);
+                            setEditInsuranceVerified(detail.insuranceVerified ?? false);
+                          }}
+                        >
+                          <X className="size-3 mr-1" />
+                          Cancel
+                        </Button>
                       )}
                     </div>
+
+                    {editingPatient ? (
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="edit-patient-name" className="text-xs font-medium text-muted-foreground">
+                            Full Name
+                          </Label>
+                          <Input
+                            id="edit-patient-name"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="h-9 text-sm"
+                            disabled={patientSaving}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="edit-patient-phone" className="text-xs font-medium text-muted-foreground">
+                            Phone
+                          </Label>
+                          <Input
+                            id="edit-patient-phone"
+                            value={editPhone}
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            className="h-9 text-sm"
+                            disabled={patientSaving}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="edit-patient-email" className="text-xs font-medium text-muted-foreground">
+                            Email
+                          </Label>
+                          <Input
+                            id="edit-patient-email"
+                            type="email"
+                            value={editEmail}
+                            onChange={(e) => setEditEmail(e.target.value)}
+                            className="h-9 text-sm"
+                            disabled={patientSaving}
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                          disabled={patientSaving || !editName.trim() || !editEmail.trim()}
+                          onClick={handleSavePatient}
+                        >
+                          {patientSaving ? (
+                            <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                          ) : (
+                            <Check className="size-3.5 mr-1.5" />
+                          )}
+                          Save Changes
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="size-3.5 shrink-0" />
+                          <a href={`tel:${detail.patientPhone}`} className="hover:text-foreground transition-colors">
+                            {detail.patientPhone}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="size-3.5 shrink-0" />
+                          <a href={`mailto:${detail.patientEmail}`} className="hover:text-foreground transition-colors truncate">
+                            {detail.patientEmail}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="size-3.5 shrink-0" />
+                          <span>DOB: {format(parseISO(detail.patientDob), "MMM d, yyyy")}</span>
+                        </div>
+                        {detail.guardianName && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <User className="size-3.5 shrink-0" />
+                            <span>
+                              Guardian: {detail.guardianName} ({detail.guardianRelation})
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Insurance Info Received checkbox (always visible) */}
+                    <Separator />
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+                      <Checkbox
+                        checked={editingPatient ? editInsuranceVerified : (detail.insuranceVerified ?? false)}
+                        onCheckedChange={(checked) => {
+                          const val = checked === true;
+                          if (editingPatient) {
+                            setEditInsuranceVerified(val);
+                          } else {
+                            // Quick-toggle without entering full edit mode
+                            if (!selectedId) return;
+                            fetch(`/api/staff/appointments/${selectedId}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ insuranceVerified: val }),
+                            })
+                              .then((res) => {
+                                if (res.ok) {
+                                  setDetail((prev) => prev ? { ...prev, insuranceVerified: val } : null);
+                                  toast.success(val ? "Insurance info marked as received" : "Insurance info mark removed");
+                                } else {
+                                  toast.error("Failed to update");
+                                }
+                              })
+                              .catch(() => toast.error("Failed to update"));
+                          }
+                        }}
+                        disabled={patientSaving}
+                        className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-foreground group-hover:text-emerald-700 transition-colors">
+                          Insurance Info Received
+                        </span>
+                        <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                          Confirm that the patient&apos;s insurance card/information has been received
+                        </p>
+                      </div>
+                    </label>
                   </div>
 
                   {/* Appointment Info Card */}

@@ -2307,3 +2307,34 @@ Stage Summary:
 - Favicon updated to match
 - Lint passes clean, no runtime errors
 - NOTE: Login issue from previous session still unresolved (Task 0 pending)
+
+---
+Task ID: 2
+Agent: Main
+Task: Add edit contact details + Insurance Info Received checkbox to patient popup modal in staff portal
+
+Work Log:
+- Investigated the appointments page detail dialog (src/app/staff/dashboard/appointments/page.tsx)
+- Found Patient Info Card displayed contact details as read-only text with no edit option
+- Found `insuranceVerified` field exists in Prisma schema but was not exposed in the UI
+- Extended PATCH `/api/staff/appointments/[id]` endpoint to accept: `patientName`, `patientEmail`, `patientPhone`, `insuranceVerified`
+- Added validation: non-empty name, email format check, phone trim
+- Added appropriate audit log actions for each update type
+- Added edit mode state variables: `editingPatient`, `editName`, `editEmail`, `editPhone`, `editInsuranceVerified`, `patientSaving`
+- Updated `openDetail()` to populate edit fields when dialog opens
+- Added `handleSavePatient()` handler that saves all contact details + insuranceVerified in one request
+- Replaced read-only Patient Info Card with toggle-able edit/view mode:
+  - Pencil icon to enter edit mode, Cancel button to revert
+  - Editable Input fields for Name, Phone, Email (no masking)
+  - Save Changes button with loading state
+- Added "Insurance Info Received" checkbox below the patient info (always visible):
+  - Quick-toggles via inline API call when not in edit mode
+  - Syncs with edit form state when in edit mode
+- Made patient name/row clickable in the appointments table to open detail dialog directly
+- Added `Label` import from shadcn/ui, `Checkbox` import, `Pencil` and `Check` icons
+
+Stage Summary:
+- Backend API extended to support patient contact updates and insuranceVerified flag
+- Frontend detail dialog now has: edit button, editable fields, save/cancel, insurance checkbox
+- Patient name is clickable in the table to open the detail modal
+- NOTE: Login remains broken (pre-existing issue from previous session) - prevents full E2E browser verification
