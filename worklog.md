@@ -2366,3 +2366,56 @@ Stage Summary:
 - **VERIFIED**: Dashboard access works with session cookie (200 OK)
 - **VERIFIED**: Patient popup modal features (contact edit + insurance checkbox) exist and API supports them
 - **NOTE**: Patient popup was not missing features — they were already implemented but unreachable due to broken login
+
+---
+Task ID: 3
+Agent: Full-Stack Developer
+Task: Add Reschedule feature to clinic staff appointments
+
+Work Log:
+- Created POST /api/staff/appointments/[id]/reschedule endpoint with atomic transaction
+- Endpoint handles: auth check, clinic access validation, status check (BOOKED only), slot validation
+- Transaction: releases old slot (AVAILABLE), updates appointment with new slot data, books new slot
+- Adds automatic internal note recording the reschedule
+- Added Reschedule dialog to appointments page with provider/date/slot selection
+- Added "Reschedule" action to dropdown for BOOKED appointments
+- Dialog shows current appointment info, provider selector, calendar date picker, available slots grid
+- Proper loading states, validation, and error handling throughout
+
+Stage Summary:
+- Staff can now reschedule BOOKED appointments from the Actions dropdown
+- Supports same provider or different provider reschedule
+- Uses calendar date picker and slot grid for intuitive time selection
+- Backend ensures data integrity via Prisma transaction
+- Audit log and internal note automatically created for reschedule events
+
+---
+Task ID: 4
+Agent: Main Orchestrator
+Task: Verify reschedule feature end-to-end
+
+Work Log:
+- Ran `bun run lint` — clean, zero errors
+- Verified API endpoint: POST /api/staff/appointments/[id]/reschedule
+  - Successfully rescheduled appointment from Jul 6 2:00 PM to Jul 7 2:00 PM
+  - Provider changed to Dr. Sarah Chen
+  - Status remained BOOKED
+  - Internal note auto-created: "Rescheduled from Jul 6, 2026 at 2:00 PM to Jul 7, 2026 at 2:00 PM by Downtown Medical Group Admin"
+  - Old slot released back to AVAILABLE
+  - New slot set to BOOKED
+  - Audit log entry created with BOOKING_RESCHEDULED action
+- Verified frontend integration:
+  - "Reschedule" menu item in Actions dropdown (only for BOOKED status)
+  - RefreshCw icon with blue accent
+  - Dialog with current appointment info card
+  - Provider selector pre-filled with current provider
+  - Calendar date picker with past dates disabled
+  - Available slots grid (3 columns, modality labels, loading skeletons, empty state)
+  - New time summary card when slot selected
+  - Cancel / Confirm buttons with proper loading/disabled states
+- Added BOOKING_RESCHEDULED to AUDIT_ACTIONS in constants.ts
+
+Stage Summary:
+- Reschedule feature fully implemented and API-verified
+- All 4 files touched: new API route, modified appointments page, modified constants
+- Lint clean, API tested successfully

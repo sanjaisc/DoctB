@@ -34,6 +34,8 @@ import {
   QrCode,
   Pencil,
   Check,
+  ArrowRight,
+  RefreshCw,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { QrCodeDisplay } from "@/components/qr-code-display";
@@ -65,7 +67,14 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 // =============================================================================
 // Types
@@ -136,6 +145,13 @@ interface ProviderOption {
   firstName: string;
   lastName: string;
   credentials: string | null;
+}
+
+interface RescheduleSlot {
+  id: string;
+  startTime: string;
+  endTime: string;
+  modality: string;
 }
 
 interface WaitlistRow {
@@ -250,6 +266,15 @@ export default function AppointmentsPage() {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlistError, setWaitlistError] = useState<string | null>(null);
   const [waitlistActionId, setWaitlistActionId] = useState<string | null>(null);
+
+  // Reschedule dialog
+  const [rescheduleApt, setRescheduleApt] = useState<AppointmentRow | null>(null);
+  const [rescheduleProviderId, setRescheduleProviderId] = useState("");
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
+  const [rescheduleSlots, setRescheduleSlots] = useState<RescheduleSlot[]>([]);
+  const [rescheduleSlotsLoading, setRescheduleSlotsLoading] = useState(false);
+  const [rescheduleSelectedSlotId, setRescheduleSelectedSlotId] = useState("");
+  const [rescheduleSubmitting, setRescheduleSubmitting] = useState(false);
 
   // Build query params
   const buildQuery = useCallback(
@@ -472,6 +497,79 @@ export default function AppointmentsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to update patient details");
     } finally {
       setPatientSaving(false);
+    }
+  };
+
+  // ---- Reschedule ----
+  const openReschedule = (apt: AppointmentRow) => {
+    setRescheduleApt(apt);
+    setRescheduleProviderId(apt.provider.id);
+    setRescheduleDate(undefined);
+    setRescheduleSlots([]);
+    setRescheduleSelectedSlotId("");
+  };
+
+  const handleRescheduleProviderChange = async (providerId: string) => {
+    setRescheduleProviderId(providerId);
+    setRescheduleSelectedSlotId("");
+    if (rescheduleDate) {
+      await fetchRescheduleSlots(providerId, rescheduleDate);
+    } else {
+      setRescheduleSlots([]);
+    }
+  };
+
+  const handleRescheduleDateChange = async (date: Date | undefined) => {
+    setRescheduleDate(date);
+    setRescheduleSelectedSlotId("");
+    if (date && rescheduleProviderId) {
+      await fetchRescheduleSlots(rescheduleProviderId, date);
+    } else {
+      setRescheduleSlots([]);
+    }
+  };
+
+  const fetchRescheduleSlots = async (providerId: string, date: Date) => {
+    setRescheduleSlotsLoading(true);
+    try {
+      const dateStr = format(date, "yyyy-MM-dd");
+      const res = await fetch(`/api/staff/book?providerId=${providerId}&date=${dateStr}`);
+      if (!res.ok) throw new Error("Failed to load slots");
+      const data = await res.json();
+      setRescheduleSlots(data.slots || []);
+    } catch {
+      setRescheduleSlots([]);
+      toast.error("Failed to load available slots");
+    } finally {
+      setRescheduleSlotsLoading(false);
+    }
+  };
+
+  const handleRescheduleConfirm = async () => {
+    if (!rescheduleApt || !rescheduleSelectedSlotId || rescheduleSubmitting) return;
+    setRescheduleSubmitting(true);
+    try {
+      const res = await fetch(`/api/staff/appointments/${rescheduleApt.id}/reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newSlotId: rescheduleSelectedSlotId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Reschedule failed");
+      }
+      toast.success("Appointment rescheduled successfully");
+      setRescheduleApt(null);
+      fetchAppointments();
+      // Also refresh detail if this appointment's detail is open
+      if (selectedId === rescheduleApt.id) {
+        setSelectedId(null);
+        setDetail(null);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reschedule");
+    } finally {
+      setRescheduleSubmitting(false);
     }
   };
 
@@ -1038,6 +1136,15 @@ export default function AppointmentsPage() {
                               Check In
                             </DropdownMenuItem>
                           )}
+                          {apt.status === "BOOKED" && (
+                            <DropdownMenuItem
+                              onClick={() => openReschedule(apt)}
+                              className="cursor-pointer"
+                            >
+                              <RefreshCw className="size-3.5 mr-2 text-blue-600" />
+                              Reschedule
+                            </DropdownMenuItem>
+                          )}
                           {apt.status === "CHECKED_IN" && (
                             <DropdownMenuItem
                               onClick={() => handleTransition(apt.id, "COMPLETED")}
@@ -1141,6 +1248,205 @@ export default function AppointmentsPage() {
         )}
       </div>
       )}
+
+      {/* ================================================================== */}
+      {/* RESCHEDULE DIALOG                                                  */}
+      {/* ================================================================== */}
+      <Dialog
+        open={!!rescheduleApt}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRescheduleApt(null);
+            setRescheduleSlots([]);
+            setRescheduleSelectedSlotId("");
+            setRescheduleDate(undefined);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="size-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <RefreshCw className="size-4 text-blue-600" />
+              </div>
+              Reschedule Appointment
+            </DialogTitle>
+            <DialogDescription>
+              Select a new provider, date, and time slot for this appointment.
+            </DialogDescription>
+          </DialogHeader>
+
+          {rescheduleApt && (
+            <div className="space-y-5">
+              {/* Current appointment info */}
+              <div className="rounded-lg bg-muted/50 border border-border/50 p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    {rescheduleApt.patientName}
+                  </span>
+                  <Badge className={cn("text-[10px] border", STATUS_STYLES[rescheduleApt.status])}>
+                    {STATUS_LABELS[rescheduleApt.status]}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <p>
+                    Current: {format(parseISO(rescheduleApt.startTime), "EEE, MMM d 'at' h:mm a")} — {format(parseISO(rescheduleApt.endTime), "h:mm a")}
+                  </p>
+                  <p>
+                    Dr. {rescheduleApt.provider.firstName} {rescheduleApt.provider.lastName}
+                    {rescheduleApt.provider.credentials && <span>, {rescheduleApt.provider.credentials}</span>}
+                    {" · "}{rescheduleApt.service.name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Provider selector */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Provider</Label>
+                <Select value={rescheduleProviderId} onValueChange={handleRescheduleProviderChange}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {providers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        Dr. {p.firstName} {p.lastName}{p.credentials ? `, ${p.credentials}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date picker */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">New Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-10 justify-start text-left font-normal",
+                        !rescheduleDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {rescheduleDate ? format(rescheduleDate, "EEEE, MMM d, yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={rescheduleDate}
+                      onSelect={handleRescheduleDateChange}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Available slots */}
+              {rescheduleDate && rescheduleProviderId && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Available Slots
+                    {rescheduleSlotsLoading && (
+                      <Loader2 className="inline size-3.5 ml-2 animate-spin text-muted-foreground" />
+                    )}
+                  </Label>
+                  {rescheduleSlotsLoading ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <Skeleton key={i} className="h-10 rounded-lg" />
+                      ))}
+                    </div>
+                  ) : rescheduleSlots.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
+                      <Calendar className="size-8 mx-auto text-muted-foreground/40 mb-2" />
+                      <p className="text-sm text-muted-foreground">No available slots for this date</p>
+                      <p className="text-xs text-muted-foreground mt-1">Try selecting a different date</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                      {rescheduleSlots.map((slot) => {
+                        const isSelected = rescheduleSelectedSlotId === slot.id;
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => setRescheduleSelectedSlotId(slot.id)}
+                            className={cn(
+                              "flex flex-col items-center justify-center rounded-lg border p-2.5 text-center transition-all cursor-pointer",
+                              isSelected
+                                ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-500/20"
+                                : "border-border/60 hover:border-emerald-300 hover:bg-emerald-50/50 text-foreground"
+                            )}
+                          >
+                            <span className="text-sm font-medium">
+                              {format(parseISO(slot.startTime), "h:mm a")}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                              {slot.modality === "VIDEO" ? "📹 Video" : "🏢 In-Person"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Summary when slot selected */}
+              {rescheduleSelectedSlotId && (
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+                  <p className="text-xs font-medium text-emerald-800 mb-1">New Appointment Time</p>
+                  {(() => {
+                    const selectedSlot = rescheduleSlots.find((s) => s.id === rescheduleSelectedSlotId);
+                    if (!selectedSlot) return null;
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-emerald-700">
+                        <span className="font-medium">
+                          {format(parseISO(selectedSlot.startTime), "EEE, MMM d 'at' h:mm a")}
+                        </span>
+                        <ArrowRight className="size-3.5" />
+                        <span>{format(parseISO(selectedSlot.endTime), "h:mm a")}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <Button
+                  variant="outline"
+                  className="flex-1 cursor-pointer"
+                  onClick={() => {
+                    setRescheduleApt(null);
+                    setRescheduleSlots([]);
+                    setRescheduleSelectedSlotId("");
+                  }}
+                  disabled={rescheduleSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                  disabled={!rescheduleSelectedSlotId || rescheduleSubmitting}
+                  onClick={handleRescheduleConfirm}
+                >
+                  {rescheduleSubmitting ? (
+                    <Loader2 className="size-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="size-4 mr-1.5" />
+                  )}
+                  Confirm Reschedule
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ================================================================== */}
       {/* QR CODE DIALOG                                                     */}
