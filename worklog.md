@@ -2419,3 +2419,22 @@ Stage Summary:
 - Reschedule feature fully implemented and API-verified
 - All 4 files touched: new API route, modified appointments page, modified constants
 - Lint clean, API tested successfully
+
+---
+Task ID: 5
+Agent: Main Orchestrator
+Task: Fix appointments not showing in staff dashboard list
+
+Work Log:
+- Investigated: DB has 30 appointments but 0 for today (Jul 6)
+- Root cause: dateFrom and dateTo both defaulted to today only
+- Changed dateTo default from today to today+30 days using date-fns addDays()
+- Updated "Clear filters" to reset to the new 30-day default range
+- Improved empty state message to be context-aware (different text for filtered vs unfiltered)
+- Verified API returns 1 BOOKED appointment with new date range (Jul 7)
+- Lint passes clean
+
+Stage Summary:
+- Default date range changed from "today only" to "next 30 days"
+- Appointments now visible on first load (shows upcoming bookings)
+- Clear filters resets to the 30-day default

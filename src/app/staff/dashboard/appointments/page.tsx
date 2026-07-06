@@ -73,7 +73,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -219,7 +219,7 @@ export default function AppointmentsPage() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [dateFrom, setDateFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
-  const [dateTo, setDateTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState(() => format(addDays(new Date(), 30), "yyyy-MM-dd"));
   const [search, setSearch] = useState("");
   const [providerFilter, setProviderFilter] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -811,14 +811,14 @@ export default function AppointmentsPage() {
             </>
           )}
         </p>
-        {(statusFilter || search || providerFilter || dateFrom !== format(new Date(), "yyyy-MM-dd") || dateTo !== format(new Date(), "yyyy-MM-dd")) && (
+        {(statusFilter || search || providerFilter || dateFrom !== format(new Date(), "yyyy-MM-dd") || dateTo !== format(addDays(new Date(), 30), "yyyy-MM-dd")) && (
           <button
             onClick={() => {
               setStatusFilter("");
               setSearch("");
               setProviderFilter("");
               setDateFrom(format(new Date(), "yyyy-MM-dd"));
-              setDateTo(format(new Date(), "yyyy-MM-dd"));
+              setDateTo(format(addDays(new Date(), 30), "yyyy-MM-dd"));
             }}
             className="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer flex items-center gap-1"
           >
@@ -1050,7 +1050,9 @@ export default function AppointmentsPage() {
                       </div>
                       <p className="text-sm font-medium text-muted-foreground">No appointments found</p>
                       <p className="text-xs text-muted-foreground/70">
-                        Try adjusting your filters or date range
+                        {statusFilter || search || providerFilter
+                          ? "Try adjusting your filters"
+                          : "No upcoming appointments in this date range. Try expanding the date range or check past dates."}
                       </p>
                     </div>
                   </td>
