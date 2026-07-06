@@ -53,6 +53,14 @@ interface TaxonomySpecialty {
   slug: string;
 }
 
+interface PopularSpecialty {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  appointmentCount: number;
+}
+
 interface TaxonomyInsurance {
   id: string;
   name: string;
@@ -208,15 +216,19 @@ export function SearchPage() {
   // ---- Featured Clinics ----
   const [clinics, setClinics] = useState<FeaturedClinic[]>([]);
 
+  // ---- Popular Specialties ----
+  const [popularSpecialties, setPopularSpecialties] = useState<PopularSpecialty[]>([]);
+
   // ---------------------------------------------------------------------------
   // Fetch Taxonomies & Clinics on Mount
   // ---------------------------------------------------------------------------
   useEffect(() => {
     async function fetchInitialData() {
       try {
-        const [taxRes, clinicRes] = await Promise.all([
+        const [taxRes, clinicRes, popSpecRes] = await Promise.all([
           fetch("/api/taxonomies"),
           fetch("/api/clinics"),
+          fetch("/api/specialties/popular"),
         ]);
         if (taxRes.ok) {
           const data = await taxRes.json();
@@ -227,6 +239,10 @@ export function SearchPage() {
         if (clinicRes.ok) {
           const clinicData = await clinicRes.json();
           setClinics(clinicData.clinics ?? []);
+        }
+        if (popSpecRes.ok) {
+          const popSpecData = await popSpecRes.json();
+          setPopularSpecialties(popSpecData ?? []);
         }
       } catch {
         // Silently fail
@@ -971,6 +987,47 @@ export function SearchPage() {
               </section>
             )}
 
+            {/* ----- Popular Searches by Specialty ----- */}
+            {popularSpecialties.length > 0 && (
+              <section className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <LayoutGrid className="size-5 text-emerald-600" />
+                  <h2 className="text-xl font-bold text-foreground">Popular Searches by Specialty</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {popularSpecialties.map((spec, idx) => {
+                    const FallbackIcon = getSpecialtyIcon(spec.name);
+                    return (
+                      <button
+                        key={spec.id}
+                        type="button"
+                        onClick={() => {
+                          setSpecialtyId(spec.id);
+                          executeSearch({ specialtyId: spec.id });
+                        }}
+                        className="flex flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center hover:shadow-md hover:border-emerald-300 hover:bg-emerald-50/50 transition-all duration-200 cursor-pointer"
+                        style={{ animationDelay: `${idx * 60}ms` }}
+                      >
+                        {spec.icon ? (
+                          <span className="text-2xl leading-none" role="img" aria-label={spec.name}>{spec.icon}</span>
+                        ) : (
+                          <FallbackIcon className="size-6 text-emerald-600" />
+                        )}
+                        <span className="text-sm font-medium text-foreground leading-tight">
+                          {spec.name}
+                        </span>
+                        {spec.appointmentCount > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {spec.appointmentCount} booking{spec.appointmentCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* ----- How It Works ----- */}
             <section className="space-y-6">
               <div className="flex items-center justify-center gap-2">
@@ -1033,37 +1090,6 @@ export function SearchPage() {
               </div>
             </section>
 
-            {/* ----- Browse by Specialty ----- */}
-            {specialties.length > 0 && (
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <LayoutGrid className="size-5 text-emerald-600" />
-                  <h2 className="text-xl font-bold text-foreground">Browse by Specialty</h2>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {specialties.slice(0, 10).map((spec, idx) => {
-                    const SpecialtyIcon = getSpecialtyIcon(spec.name);
-                    return (
-                      <button
-                        key={spec.id}
-                        type="button"
-                        onClick={() => {
-                          setSpecialtyId(spec.id);
-                          executeSearch({ specialtyId: spec.id });
-                        }}
-                        className="flex flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center hover:shadow-md hover:border-emerald-300 hover:bg-emerald-50/50 transition-all duration-200 cursor-pointer"
-                        style={{ animationDelay: `${idx * 60}ms` }}
-                      >
-                        <SpecialtyIcon className="size-6 text-emerald-600" />
-                        <span className="text-sm font-medium text-foreground leading-tight">
-                          {spec.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
           </div>
         )}
 

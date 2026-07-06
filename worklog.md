@@ -2206,3 +2206,30 @@ Stage Summary:
 - Distance displays inline after address with dot separator and emerald accent
 - Lint passes cleanly
 ---
+
+---
+Task ID: Popular Specialties Reorder & Dynamic Population
+Agent: Main Orchestrator
+Task: Move "Browse by Specialty" section above "How DoctA Works" (below Featured Clinics), rename to "Popular Searches by Specialty", make specialties dynamic (ordered by booking count) with DB icons
+
+Work Log:
+- Analyzed current section order in search-page.tsx: Featured Clinics (882-972) → How DoctA Works (974-1034) → Browse by Specialty (1036-1066)
+- Confirmed Prisma Specialty model already has `icon` field (emoji) and `appointments` relation
+- Confirmed seed data already has emoji icons: 🩺 (Family Medicine), ❤️ (Cardiology), 🔬 (Dermatology), 👶 (Pediatrics), 🦴 (Orthopedics)
+- Created `/api/specialties/popular` route: raw SQL query counting appointments per specialty, ordered by count DESC then sortOrder ASC, with BigInt→Number conversion
+- Added `popularSpecialties` cache key to `src/lib/cache.ts`
+- Added `PopularSpecialty` interface to search-page.tsx (id, name, slug, icon, appointmentCount)
+- Added `popularSpecialties` state and fetch in initial data load (parallel with taxonomies + clinics)
+- Removed old "Browse by Specialty" section from bottom of page
+- Inserted new "Popular Searches by Specialty" section between Featured Clinics and How DoctA Works
+- New section renders DB emoji icons (with Lucide icon fallback), specialty name, and booking count
+- Verified: API returns correct data (Family Medicine: 10, Cardiology: 6, Pediatrics: 5, Orthopedics: 5, Dermatology: 4)
+- Verified: Agent-browser confirms correct section order, emoji icons, booking counts, and section title
+
+Stage Summary:
+- **New API**: `/api/specialties/popular` — GET returns specialties ordered by appointment booking count with icons
+- **Section Order**: Featured Clinics → Popular Searches by Specialty → How DoctA Works ✓
+- **Dynamic Icons**: Emoji icons from DB `Specialty.icon` field, Lucide fallback for specialties without icons
+- **Booking Counts**: Displayed under each specialty name (e.g., "10 bookings")
+- **Admin Extensibility**: New specialties added via backend with icon field will automatically appear in popularity order
+

@@ -181,6 +181,9 @@ export const CacheKeys = {
 
   // System config: "config:system"
   systemConfig: () => "config:system",
+
+  // Popular specialties: "popular:specialties"
+  popularSpecialties: () => "popular:specialties",
 } as const;
 
 // Default TTLs in seconds
