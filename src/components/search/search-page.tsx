@@ -1016,11 +1016,6 @@ export function SearchPage() {
                         <span className="text-sm font-medium text-foreground leading-tight">
                           {spec.name}
                         </span>
-                        {spec.appointmentCount > 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {spec.appointmentCount} booking{spec.appointmentCount !== 1 ? "s" : ""}
-                          </span>
-                        )}
                       </button>
                     );
                   })}
