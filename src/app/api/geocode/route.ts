@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "ClinicBook/1.0 (medical-booking-app)",
+        "User-Agent": "DoctA/1.0 (medical-booking-app)",
       },
     });
 

@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 import { hasMinimumRole, STAFF_ROLE } from "@/lib/enums";
 import { NotificationBell } from "@/components/notification-bell";
 
@@ -139,7 +139,7 @@ export default function StaffDashboardLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const user = session?.user as ClinicBookSessionUser | undefined;
+  const user = session?.user as DoctASessionUser | undefined;
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
@@ -176,7 +176,7 @@ export default function StaffDashboardLayout({
         </div>
         {!collapsed && (
           <span className="text-base font-bold tracking-tight text-foreground whitespace-nowrap">
-            ClinicBook
+            DoctA
           </span>
         )}
       </div>

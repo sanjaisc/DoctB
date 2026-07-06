@@ -38,7 +38,7 @@ const FAQ_ITEMS = [
   {
     question: "Do you accept my insurance?",
     answer:
-      "ClinicBook works with a wide range of insurance providers. To check if your specific plan is accepted, visit the provider\u2019s profile page or contact the clinic directly. You can also use our search filters to find providers that accept your insurance.",
+      "DoctA works with a wide range of insurance providers. To check if your specific plan is accepted, visit the provider\u2019s profile page or contact the clinic directly. You can also use our search filters to find providers that accept your insurance.",
   },
   {
     question: "What if I don\u2019t have insurance?",
@@ -95,7 +95,7 @@ export default function InsurancePage() {
           <Link href="/" className="flex items-center gap-2">
             <Heart className="size-6 text-emerald-600 fill-emerald-600" />
             <span className="text-lg font-bold tracking-tight text-foreground">
-              ClinicBook
+              DoctA
             </span>
           </Link>
           <div className="flex items-center gap-2">

@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 
 // ---- Types ----
 
@@ -129,7 +129,7 @@ export function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  const user = session?.user as ClinicBookSessionUser | undefined;
+  const user = session?.user as DoctASessionUser | undefined;
 
   const fetchNotifications = useCallback(async () => {
     if (!user?.clinicId) return;

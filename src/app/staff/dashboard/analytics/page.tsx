@@ -33,7 +33,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -260,7 +260,7 @@ function PeriodSelector({
 // ---------------------------------------------------------------------------
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
-  const user = session?.user as ClinicBookSessionUser | undefined;
+  const user = session?.user as DoctASessionUser | undefined;
 
   const [period, setPeriod] = useState<Period>("30d");
   const [data, setData] = useState<AnalyticsData | null>(null);

@@ -766,7 +766,7 @@ export default function BookingPage() {
             <div className="flex items-center gap-2 cursor-pointer">
               <Heart className="size-6 text-emerald-600 fill-emerald-600" />
               <span className="text-lg font-bold tracking-tight text-foreground">
-                ClinicBook
+                DoctA
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -798,7 +798,7 @@ export default function BookingPage() {
             <div className="flex items-center gap-2 cursor-pointer">
               <Heart className="size-6 text-emerald-600 fill-emerald-600" />
               <span className="text-lg font-bold tracking-tight text-foreground">
-                ClinicBook
+                DoctA
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -859,7 +859,7 @@ export default function BookingPage() {
             <div className="flex items-center gap-2 cursor-pointer">
               <Heart className="size-6 text-emerald-600 fill-emerald-600" />
               <span className="text-lg font-bold tracking-tight text-foreground">
-                ClinicBook
+                DoctA
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -1128,7 +1128,7 @@ export default function BookingPage() {
           <div className="flex items-center gap-2 cursor-pointer">
             <Heart className="size-6 text-emerald-600 fill-emerald-600" />
             <span className="text-lg font-bold tracking-tight text-foreground">
-              ClinicBook
+              DoctA
             </span>
           </div>
           <div className="flex items-center gap-2">

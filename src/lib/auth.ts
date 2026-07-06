@@ -19,7 +19,7 @@ import { STAFF_ROLE, hasMinimumRole, isValidStaffRole } from "@/lib/enums";
  * Custom session type with our extended fields.
  * Used in client components via useSession().
  */
-export type ClinicBookSessionUser = {
+export type DoctASessionUser = {
   id: string;
   email: string;
   name: string;
@@ -29,15 +29,15 @@ export type ClinicBookSessionUser = {
   clinicId: string | null;
 };
 
-export type ClinicBookSession = {
-  user: ClinicBookSessionUser;
+export type DoctASession = {
+  user: DoctASessionUser;
   accessToken?: string;
 };
 
 /**
  * Custom JWT payload type.
  */
-export type ClinicBookJWT = {
+export type DoctAJWT = {
   id: string;
   email: string;
   name: string;
@@ -198,7 +198,7 @@ export const authOptions: NextAuthOptions = {
 
           if (!dbUser || !dbUser.isActive) {
             // User deactivated or deleted — invalidate the token
-            return {} as ClinicBookJWT;
+            return {} as DoctAJWT;
           }
 
           // Refresh role and clinicId (they may have been changed by admin)

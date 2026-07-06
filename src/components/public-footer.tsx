@@ -16,7 +16,7 @@ export function PublicFooter() {
             <div className="flex items-center gap-2">
               <Heart className="size-5 text-emerald-600 fill-emerald-600" />
               <span className="text-lg font-bold tracking-tight text-foreground">
-                ClinicBook
+                DoctA
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -148,13 +148,16 @@ export function PublicFooter() {
         {/* Bottom Bar */}
         <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground text-center sm:text-left">
-            &copy; {new Date().getFullYear()} ClinicBook. All rights reserved. Built with{" "}
-            <span className="text-red-500">&#10084;</span> using Next.js
+            Made with{" "}
+            <span className="text-red-500">&#10084;</span> in Canada
+          </p>
+          <p className="text-xs text-muted-foreground text-center sm:text-left">
+            &copy; 2026 DoctA — Clinic Listing &amp; Appointment Booking Platform. All rights reserved.
           </p>
           <div className="flex items-center gap-1.5">
             <Heart className="size-3.5 text-emerald-600 fill-emerald-600" />
             <span className="text-sm font-bold tracking-tight text-foreground">
-              ClinicBook
+              DoctA
             </span>
           </div>
         </div>

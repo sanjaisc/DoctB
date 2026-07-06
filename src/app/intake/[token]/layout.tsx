@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Patient Intake Form — ClinicBook",
+  title: "Patient Intake Form — DoctA",
   description:
     "Complete your intake form before your appointment to save time at the clinic.",
   openGraph: {
-    title: "Patient Intake Form — ClinicBook",
+    title: "Patient Intake Form — DoctA",
     description:
       "Complete your intake form before your appointment to save time at the clinic.",
   },

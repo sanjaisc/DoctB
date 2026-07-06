@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { AUDIT_ACTIONS } from "@/lib/constants";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 
 // ---- Types ----
 
@@ -239,7 +239,7 @@ function NotificationCard({ notification, index }: { notification: ActivityNotif
 
 export default function ActivityPage() {
   const { data: session, status } = useSession();
-  const user = session?.user as ClinicBookSessionUser | undefined;
+  const user = session?.user as DoctASessionUser | undefined;
 
   const [notifications, setNotifications] = useState<ActivityNotification[]>([]);
   const [loading, setLoading] = useState(true);

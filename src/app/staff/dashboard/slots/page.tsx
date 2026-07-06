@@ -636,7 +636,7 @@ export default function SlotManagementPage() {
                   You are about to mark {selectedIds.size} slot
                   {selectedIds.size !== 1 ? "s" : ""} as{" "}
                   <span className="font-semibold text-purple-600">externally booked</span>. These
-                  slots will be shown as booked but will not have a ClinicBook appointment
+                  slots will be shown as booked but will not have a DoctA appointment
                   associated.
                 </>
               )}

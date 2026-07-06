@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cache } from "@/lib/cache";
 import { subDays, format, startOfDay, endOfDay } from "date-fns";
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as ClinicBookSessionUser;
+    const user = session.user as DoctASessionUser;
     const clinicId = user.clinicId;
     const role = user.role;
 

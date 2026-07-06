@@ -32,7 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow } from "date-fns";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 import { AUDIT_ACTIONS } from "@/lib/constants";
 
 interface DashboardStats {
@@ -341,7 +341,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const user = session?.user as ClinicBookSessionUser | undefined;
+  const user = session?.user as DoctASessionUser | undefined;
 
   const fetchDashboard = useCallback(async () => {
     if (!user?.clinicId) return;

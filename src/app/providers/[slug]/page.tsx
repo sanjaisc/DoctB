@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: ProviderPageParams): Promise<
 
     if (!provider) {
       return {
-        title: "Provider Not Found — ClinicBook",
+        title: "Provider Not Found — DoctA",
         description: "The healthcare provider you are looking for could not be found.",
       };
     }
@@ -76,10 +76,10 @@ export async function generateMetadata({ params }: ProviderPageParams): Promise<
       : `Book an appointment with ${displayName} (${specialty}).${ratingSuffix} View availability and schedule your visit today.`;
 
     return {
-      title: `${displayName} — ${specialty} | ClinicBook`,
+      title: `${displayName} — ${specialty} | DoctA`,
       description,
       openGraph: {
-        title: `${displayName} — ${specialty} | ClinicBook`,
+        title: `${displayName} — ${specialty} | DoctA`,
         description,
         type: "profile",
         firstName: provider.firstName,
@@ -88,7 +88,7 @@ export async function generateMetadata({ params }: ProviderPageParams): Promise<
     };
   } catch {
     return {
-      title: "Provider — ClinicBook",
+      title: "Provider — DoctA",
       description: "Find and book appointments with top-rated healthcare providers.",
     };
   }
@@ -257,7 +257,7 @@ export default async function ProviderProfilePage({ params }: PageProps) {
           <Link href="/" className="flex items-center gap-2">
             <Heart className="size-6 text-emerald-600 fill-emerald-600" />
             <span className="text-lg font-bold tracking-tight text-foreground">
-              ClinicBook
+              DoctA
             </span>
           </Link>
           <div className="flex items-center gap-2">

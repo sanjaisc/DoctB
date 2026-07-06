@@ -463,7 +463,7 @@ export function SearchPage() {
           <div className="flex items-center gap-2 cursor-pointer">
             <Heart className="size-6 text-emerald-600 fill-emerald-600" />
             <span className="text-lg font-bold tracking-tight text-foreground">
-              ClinicBook
+              DoctA
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -720,7 +720,7 @@ export function SearchPage() {
                           geocodeZip(zipCode);
                         }
                       }}
-                      className="h-9 w-[120px] pr-8 text-sm"
+                      className="h-9 w-[120px] pr-8 text-sm bg-white"
                     />
                     {zipStatus === "resolved" && (
                       <CheckCircle2
@@ -853,6 +853,7 @@ export function SearchPage() {
             </div>
             </div>
           </form>
+          <div className="h-5" />
         </div>
       </section>
 
@@ -974,7 +975,7 @@ export function SearchPage() {
             <section className="space-y-6">
               <div className="flex items-center justify-center gap-2">
                 <HeartPulse className="size-5 text-emerald-600" />
-                <h2 className="text-xl font-bold text-foreground">How ClinicBook Works</h2>
+                <h2 className="text-xl font-bold text-foreground">How DoctA Works</h2>
               </div>
               <div className="relative">
                 {/* Connecting dots line — desktop only */}
@@ -1332,12 +1333,12 @@ export function SearchPage() {
           {/* Bottom line */}
           <div className="border-t border-border/50 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="text-center sm:text-left">
-              <p className="text-xs text-muted-foreground">Made with ❤️ in New York</p>
-              <p className="text-xs text-muted-foreground/70 mt-0.5">© 2026 ClinicBook. All rights reserved.</p>
+              <p className="text-xs text-muted-foreground">Made with ❤️ in Canada</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">&copy; 2026 DoctA — Clinic Listing &amp; Appointment Booking Platform. All rights reserved.</p>
             </div>
             <div className="flex items-center gap-1.5">
               <Heart className="size-3.5 text-emerald-600 fill-emerald-600" />
-              <span className="text-sm font-bold tracking-tight text-foreground">ClinicBook</span>
+              <span className="text-sm font-bold tracking-tight text-foreground">DoctA</span>
             </div>
           </div>
         </div>

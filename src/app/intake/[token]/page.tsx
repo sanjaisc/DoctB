@@ -793,7 +793,7 @@ function Header() {
             <Heart className="size-4 text-white" />
           </div>
           <span className="font-bold text-lg text-foreground tracking-tight">
-            ClinicBook
+            DoctA
           </span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -812,7 +812,7 @@ function Footer() {
     <footer className="border-t border-border/50 bg-white/80 mt-auto">
       <div className="max-w-4xl mx-auto px-4 py-4 text-center">
         <p className="text-xs text-muted-foreground">
-          Powered by <span className="font-semibold text-foreground">ClinicBook</span> &middot; Patient Intake Portal
+          Powered by <span className="font-semibold text-foreground">DoctA</span> &middot; Patient Intake Portal
         </p>
       </div>
     </footer>

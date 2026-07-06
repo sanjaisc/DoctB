@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 import { useEffect, useState } from "react";
 
 interface ClinicInfo {
@@ -29,7 +29,7 @@ interface ClinicInfo {
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const user = session?.user as ClinicBookSessionUser | undefined;
+  const user = session?.user as DoctASessionUser | undefined;
   const [clinic, setClinic] = useState<ClinicInfo | null>(null);
   const [loading, setLoading] = useState(!!user?.clinicId);
 

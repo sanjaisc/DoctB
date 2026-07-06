@@ -49,7 +49,7 @@ export default function NotFound() {
       {/* Sticky Footer */}
       <footer className="border-t bg-muted/30 mt-auto">
         <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
-          <span>&copy; {new Date().getFullYear()} ClinicBook. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} DoctA. All rights reserved.</span>
           <div className="flex items-center gap-4">
             <Link href="/" className="hover:text-foreground transition-colors">
               Home

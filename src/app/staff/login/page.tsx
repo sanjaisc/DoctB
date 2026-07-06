@@ -78,14 +78,14 @@ export default function StaffLoginPage() {
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 cursor-pointer"
             >
               <span>←</span>
-              <span>Back to ClinicBook</span>
+              <span>Back to DoctA</span>
             </Link>
             <div className="flex items-center justify-center gap-2.5 mb-3">
               <div className="relative">
                 <Heart className="size-8 text-emerald-600 fill-emerald-600" />
               </div>
               <span className="text-2xl font-bold tracking-tight text-foreground">
-                ClinicBook
+                DoctA
               </span>
             </div>
             <p className="text-muted-foreground text-sm">
@@ -262,7 +262,7 @@ export default function StaffLoginPage() {
 
           {/* Footer */}
           <p className="text-center text-xs text-muted-foreground/60 mt-6">
-            © 2026 ClinicBook. Staff access only. Unauthorized access is
+            © 2026 DoctA. Staff access only. Unauthorized access is
             prohibited.
           </p>
         </div>

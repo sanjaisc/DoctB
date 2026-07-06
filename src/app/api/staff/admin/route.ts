@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cache } from "@/lib/cache";
 import { STAFF_ROLE } from "@/lib/enums";
@@ -14,7 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as ClinicBookSessionUser;
+    const user = session.user as DoctASessionUser;
 
     // Only SYSTEM_MANAGER can access this endpoint
     if (user.role !== STAFF_ROLE.SYSTEM_MANAGER) {

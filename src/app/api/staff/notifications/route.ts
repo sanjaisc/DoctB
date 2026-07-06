@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AUDIT_ACTIONS } from "@/lib/constants";
 import { STAFF_ROLE, hasMinimumRole } from "@/lib/enums";
-import type { ClinicBookSessionUser } from "@/lib/auth";
+import type { DoctASessionUser } from "@/lib/auth";
 
 const NOTIFICATION_ACTIONS = [
   AUDIT_ACTIONS.BOOKING_CREATED,
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as ClinicBookSessionUser;
+    const user = session.user as DoctASessionUser;
 
     // Determine clinicId: SYSTEM_MANAGER can use query param
     const { searchParams } = new URL(request.url);

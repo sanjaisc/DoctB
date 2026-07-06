@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: ClinicPageParams): Promise<Me
 
     if (!clinic) {
       return {
-        title: "Clinic Not Found — ClinicBook",
+        title: "Clinic Not Found — DoctA",
         description: "The clinic you are looking for could not be found.",
       };
     }
@@ -57,20 +57,20 @@ export async function generateMetadata({ params }: ClinicPageParams): Promise<Me
       : undefined;
 
     return {
-      title: `${clinic.name} — ClinicBook`,
+      title: `${clinic.name} — DoctA`,
       description,
       openGraph: {
-        title: `${clinic.name} — ClinicBook`,
+        title: `${clinic.name} — DoctA`,
         description,
         type: "website",
         url: `https://clinicbook.app/clinic/${clinic.slug}`,
-        siteName: "ClinicBook",
+        siteName: "DoctA",
         ...(ogImages ? { images: ogImages } : {}),
       },
     };
   } catch {
     return {
-      title: "Clinic — ClinicBook",
+      title: "Clinic — DoctA",
       description: "Find and book medical appointments at top-rated clinics.",
     };
   }
@@ -236,7 +236,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
           <Link href="/" className="flex items-center gap-2">
             <Heart className="size-6 text-emerald-600 fill-emerald-600" />
             <span className="text-lg font-bold tracking-tight text-foreground">
-              ClinicBook
+              DoctA
             </span>
           </Link>
           <div className="flex items-center gap-2">

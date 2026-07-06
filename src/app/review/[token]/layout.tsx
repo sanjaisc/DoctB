@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Leave a Review — ClinicBook",
+  title: "Leave a Review — DoctA",
   description:
     "Share your experience and help other patients find the right healthcare provider.",
   openGraph: {
-    title: "Leave a Review — ClinicBook",
+    title: "Leave a Review — DoctA",
     description:
       "Share your experience and help other patients find the right healthcare provider.",
   },

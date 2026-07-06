@@ -42,7 +42,7 @@ const VALUES = [
     icon: ShieldCheck,
     title: "Verified Providers",
     description:
-      "Every provider on ClinicBook is verified. We check credentials, licenses, and clinic standing so you can book with confidence.",
+      "Every provider on DoctA is verified. We check credentials, licenses, and clinic standing so you can book with confidence.",
     gradient: "from-cyan-400 to-cyan-600",
   },
   {
@@ -94,7 +94,7 @@ export default function AboutPage() {
           <Link href="/" className="flex items-center gap-2">
             <Heart className="size-6 text-emerald-600 fill-emerald-600" />
             <span className="text-lg font-bold tracking-tight text-foreground">
-              ClinicBook
+              DoctA
             </span>
           </Link>
           <div className="flex items-center gap-2">
@@ -134,7 +134,7 @@ export default function AboutPage() {
               </div>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-              About ClinicBook
+              About DoctA
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
               We&apos;re on a mission to make healthcare accessible by
@@ -155,12 +155,12 @@ export default function AboutPage() {
                     Our Mission
                   </h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    ClinicBook was founded with a simple belief: booking a
+                    DoctA was founded with a simple belief: booking a
                     doctor&apos;s appointment should be as easy as booking a
                     restaurant reservation. Too many patients spend hours calling
                     clinics, navigating complex phone trees, and waiting on hold
                     — only to find out the slot they wanted is already taken. We
-                    built ClinicBook to eliminate that friction entirely. Our
+                    built DoctA to eliminate that friction entirely. Our
                     platform gives patients real-time visibility into provider
                     availability, transparent pricing information, and the
                     ability to book in seconds. For clinics, we provide tools to
