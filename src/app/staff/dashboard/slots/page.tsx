@@ -42,6 +42,10 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { format, parseISO, isSameDay } from "date-fns";
+import { SLOT_STATUS_STYLES, SLOT_STATUS_LABELS } from "@/lib/enums";
+import { StatusBadge } from "@/components/staff/status-badge";
+import { PageHeader } from "@/components/staff/PageHeader";
+import { EmptyState } from "@/components/staff/empty-state";
 
 // =============================================================================
 // Types
@@ -68,24 +72,6 @@ interface ProviderOption {
 // =============================================================================
 // Constants
 // =============================================================================
-
-const SLOT_STATUS_STYLES: Record<string, string> = {
-  AVAILABLE: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  LOCKED: "bg-amber-100 text-amber-700 border-amber-200",
-  BOOKED: "bg-blue-100 text-blue-700 border-blue-200",
-  BOOKED_EXTERNALLY: "bg-purple-100 text-purple-700 border-purple-200",
-  BLOCKED: "bg-red-100 text-red-700 border-red-200",
-  CLOSED: "bg-gray-100 text-gray-500 border-gray-200",
-};
-
-const SLOT_STATUS_LABELS: Record<string, string> = {
-  AVAILABLE: "Available",
-  LOCKED: "Locked",
-  BOOKED: "Booked",
-  BOOKED_EXTERNALLY: "Ext. Booked",
-  BLOCKED: "Blocked",
-  CLOSED: "Closed",
-};
 
 const STATUS_FILTER_OPTIONS = [
   { value: "", label: "All Statuses" },
@@ -168,16 +154,15 @@ export default function SlotManagementPage() {
     }
   }, [providerId, dateFrom, dateTo, statusFilter, clinicId]);
 
-  // Fetch providers from search API
+  // Fetch providers for the clinic
   useEffect(() => {
+    if (!clinicId) return;
     (async () => {
       try {
-        const res = await fetch(
-          `/api/search/providers?specialty=&patientType=ADULT&lat=40.758&lng=-73.985&radius=50&limit=50`
-        );
+        const res = await fetch(`/api/staff/providers?clinicId=${clinicId}`);
         if (res.ok) {
           const data = await res.json();
-          const allProviders = (data.providers || []).map(
+          const allProviders = (data.data || []).map(
             (p: Record<string, unknown>) => ({
               id: p.id as string,
               firstName: (p.firstName as string) || "",
@@ -195,7 +180,7 @@ export default function SlotManagementPage() {
         // non-critical
       }
     })();
-    }, [providerId]);
+    }, [clinicId, providerId]);
 
   // Fetch slots when filters change
   useEffect(() => {
@@ -288,17 +273,14 @@ export default function SlotManagementPage() {
   const hasBlocked = selectedSlots.some((s) => s.status === "BLOCKED");
 
   return (
-    <div className="space-y-4">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Slot Management</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          View, block, and manage provider time slots
-        </p>
-      </div>
+    <div className="space-y-6 animate-in fade-in-0 duration-300">
+      <PageHeader
+        title="Slot Management"
+        description="View, block, and manage provider time slots"
+      />
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl border border-border/60 shadow-sm p-4 space-y-3">
+      <div className="bg-background rounded-xl border border-border/60 shadow-sm p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-2.5">
           {/* Provider Select */}
           <Select value={providerId} onValueChange={setProviderId}>
@@ -355,16 +337,16 @@ export default function SlotManagementPage() {
 
       {/* Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
-          <div className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-200 dark:bg-emerald-950/30 dark:border-emerald-800">
+          <div className="flex items-center gap-2 text-sm font-medium text-emerald-800 dark:text-emerald-300">
             <CheckSquare className="size-4" />
             {selectedIds.size} slot{selectedIds.size !== 1 ? "s" : ""} selected
           </div>
-          <div className="h-5 w-px bg-emerald-200" />
+          <div className="h-5 w-px bg-emerald-200 dark:bg-emerald-800" />
           <Button
             variant="outline"
             size="sm"
-            className="cursor-pointer border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/30 dark:hover:text-red-300"
             disabled={!hasAvailable}
             onClick={() => setConfirmAction("BLOCK")}
           >
@@ -374,7 +356,7 @@ export default function SlotManagementPage() {
           <Button
             variant="outline"
             size="sm"
-            className="cursor-pointer border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+            className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300"
             disabled={!hasBlocked}
             onClick={() => setConfirmAction("UNBLOCK")}
           >
@@ -384,7 +366,7 @@ export default function SlotManagementPage() {
           <Button
             variant="outline"
             size="sm"
-            className="cursor-pointer border-purple-200 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+            className="border-purple-200 text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950/30 dark:hover:text-purple-300"
             disabled={!hasAvailable}
             onClick={() => setConfirmAction("BOOKED_EXTERNALLY")}
           >
@@ -395,7 +377,7 @@ export default function SlotManagementPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="cursor-pointer text-muted-foreground"
+              className="text-muted-foreground"
               onClick={() => setSelectedIds(new Set())}
             >
               <X className="size-3.5 mr-1" />
@@ -407,18 +389,13 @@ export default function SlotManagementPage() {
 
       {/* Results */}
       {!providerId ? (
-        <div className="bg-white rounded-xl border border-border/60 shadow-sm p-16 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
-              <CalendarDays className="size-5 text-muted-foreground/60" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">Select a provider to view slots</p>
-          </div>
+        <div className="bg-background rounded-xl border border-border/60 shadow-sm">
+          <EmptyState icon={CalendarDays} title="Select a provider to view slots" />
         </div>
       ) : loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-border/60 shadow-sm p-4 space-y-2">
+            <div key={i} className="bg-background rounded-xl border border-border/60 shadow-sm p-4 space-y-2">
               <Skeleton className="h-5 w-36" />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                 {Array.from({ length: 6 }).map((_, j) => (
@@ -429,23 +406,12 @@ export default function SlotManagementPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="bg-white rounded-xl border border-red-200 bg-red-50/30 p-8 text-center">
-          <p className="text-sm text-red-600">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchSlots} className="mt-2">
-            Retry
-          </Button>
+        <div className="bg-background rounded-xl border border-red-200 bg-red-50/30 dark:border-red-800 dark:bg-red-950/30">
+          <EmptyState icon={AlertTriangle} title={error} action={<Button variant="outline" size="sm" onClick={fetchSlots}>Retry</Button>} />
         </div>
       ) : sortedDates.length === 0 ? (
-        <div className="bg-white rounded-xl border border-border/60 shadow-sm p-16 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
-              <Clock className="size-5 text-muted-foreground/60" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">No slots found</p>
-            <p className="text-xs text-muted-foreground/70">
-              Try adjusting the date range or status filter
-            </p>
-          </div>
+        <div className="bg-background rounded-xl border border-border/60 shadow-sm">
+          <EmptyState icon={Clock} title="No slots found" description="Try adjusting the date range or status filter" />
         </div>
       ) : (
         <div className="space-y-3">
@@ -458,7 +424,7 @@ export default function SlotManagementPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="cursor-pointer text-xs h-7"
+              className="text-xs h-7"
               onClick={toggleAll}
             >
               {selectedIds.size > 0 ? "Deselect All" : "Select All Available"}
@@ -473,7 +439,7 @@ export default function SlotManagementPage() {
             const isExpanded = expandedDates.has(dateKey) || sortedDates.length <= 3;
 
             return (
-              <div key={dateKey} className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
+              <div key={dateKey} className="bg-background rounded-xl border border-border/60 shadow-sm overflow-hidden">
                 {/* Date Header */}
                 <button
                   onClick={() => toggleDate(dateKey)}
@@ -485,12 +451,12 @@ export default function SlotManagementPage() {
                     ) : (
                       <ChevronRight className="size-4 text-muted-foreground" />
                     )}
-                    <Calendar className="size-4 text-emerald-600" />
+                    <Calendar className="size-4 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-sm font-semibold">
                       {format(dateObj, "EEEE, MMMM d, yyyy")}
                     </span>
                     {isToday && (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]">
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800">
                         Today
                       </Badge>
                     )}
@@ -537,7 +503,7 @@ export default function SlotManagementPage() {
                             onClick={() => isSelectable && toggleSlot(slot.id)}
                             className={`
                               relative rounded-lg border p-3 transition-all cursor-pointer
-                              ${isSelected ? "ring-2 ring-emerald-500 border-emerald-300 bg-emerald-50/50" : "border-border/50 hover:border-emerald-200 hover:bg-emerald-50/20"}
+                              ${isSelected ? "ring-2 ring-emerald-500 border-emerald-300 bg-emerald-50/50 dark:ring-emerald-400 dark:border-emerald-600 dark:bg-emerald-950/40" : "border-border/50 hover:border-emerald-200 hover:bg-emerald-50/20 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/20"}
                               ${!isSelectable ? "opacity-70 cursor-default" : ""}
                             `}
                           >
@@ -545,7 +511,7 @@ export default function SlotManagementPage() {
                             {isSelectable && (
                               <div className="absolute top-2 right-2">
                                 {isSelected ? (
-                                  <CheckSquare className="size-4 text-emerald-600" />
+                                  <CheckSquare className="size-4 text-emerald-600 dark:text-emerald-400" />
                                 ) : (
                                   <Square className="size-4 text-muted-foreground/40" />
                                 )}
@@ -563,12 +529,12 @@ export default function SlotManagementPage() {
                             {/* Modality */}
                             <div className="mb-2">
                               {slot.modality === "VIDEO" ? (
-                                <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 text-[10px]">
+                                <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 text-[10px] dark:border-blue-800 dark:text-blue-300 dark:bg-blue-950/30">
                                   <Calendar className="size-2.5 mr-0.5" />
                                   Video
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="border-emerald-200 text-emerald-600 bg-emerald-50 text-[10px]">
+                                <Badge variant="outline" className="border-emerald-200 text-emerald-600 bg-emerald-50 text-[10px] dark:border-emerald-800 dark:text-emerald-300 dark:bg-emerald-950/30">
                                   <CalendarDays className="size-2.5 mr-0.5" />
                                   In-Clinic
                                 </Badge>
@@ -576,9 +542,7 @@ export default function SlotManagementPage() {
                             </div>
 
                             {/* Status Badge */}
-                            <Badge className={`${SLOT_STATUS_STYLES[slot.status] || ""} border text-[10px]`}>
-                              {SLOT_STATUS_LABELS[slot.status] || slot.status}
-                            </Badge>
+                            <StatusBadge status={slot.status} category="slot" />
 
                             {/* Appointment info */}
                             {slot.appointment && (
@@ -613,20 +577,20 @@ export default function SlotManagementPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-amber-500" />
+              <AlertTriangle className="size-5 text-amber-500 dark:text-amber-400" />
               Confirm Slot Action
             </DialogTitle>
             <DialogDescription>
               {confirmAction === "BLOCK" && (
                 <>
-                  You are about to <span className="font-semibold text-red-600">block</span>{" "}
+                  You are about to <span className="font-semibold text-red-600 dark:text-red-300">block</span>{" "}
                   {selectedIds.size} slot{selectedIds.size !== 1 ? "s" : ""}. Blocked slots will not
                   be available for patient booking.
                 </>
               )}
               {confirmAction === "UNBLOCK" && (
                 <>
-                  You are about to <span className="font-semibold text-emerald-600">unblock</span>{" "}
+                  You are about to <span className="font-semibold text-emerald-600 dark:text-emerald-300">unblock</span>{" "}
                   {selectedIds.size} slot{selectedIds.size !== 1 ? "s" : ""}. These slots will become
                   available for patient booking.
                 </>
@@ -635,7 +599,7 @@ export default function SlotManagementPage() {
                 <>
                   You are about to mark {selectedIds.size} slot
                   {selectedIds.size !== 1 ? "s" : ""} as{" "}
-                  <span className="font-semibold text-purple-600">externally booked</span>. These
+                  <span className="font-semibold text-purple-600 dark:text-purple-300">externally booked</span>. These
                   slots will be shown as booked but will not have a DoctA appointment
                   associated.
                 </>
@@ -646,7 +610,7 @@ export default function SlotManagementPage() {
             <Button
               variant="outline"
               onClick={() => setConfirmAction(null)}
-              className="cursor-pointer"
+              className=""
               disabled={actionLoading}
             >
               Cancel
@@ -654,13 +618,13 @@ export default function SlotManagementPage() {
             <Button
               onClick={executeAction}
               disabled={actionLoading}
-              className={`cursor-pointer ${
-                confirmAction === "BLOCK"
-                  ? "bg-red-600 hover:bg-red-700"
-                  : confirmAction === "UNBLOCK"
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-purple-600 hover:bg-purple-700"
-              } text-white`}
+              className={`${
+  confirmAction === "BLOCK"
+  ? "bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
+  : confirmAction === "UNBLOCK"
+  ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+  : "bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600"
+  } text-white`}
             >
               {actionLoading ? (
                 <>

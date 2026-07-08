@@ -48,6 +48,26 @@ export async function POST(request: NextRequest) {
 
     let generated = 0;
     let skipped = 0;
+    const closureCache = new Map<string, Array<{ startDate: Date; endDate: Date }>>();
+
+    // Helper: check if a date falls within any closure for a clinic
+    async function isClosureDate(clinicId: string, date: Date): Promise<boolean> {
+      if (!closureCache.has(clinicId)) {
+        const closures = await db.clinicClosure.findMany({
+          where: { clinicId, endDate: { gte: today } },
+          select: { startDate: true, endDate: true },
+        });
+        closureCache.set(clinicId, closures);
+      }
+      const clinicClosures = closureCache.get(clinicId)!;
+      const dateStr = date.toISOString().slice(0, 10);
+      for (const c of clinicClosures) {
+        const startStr = c.startDate.toISOString().slice(0, 10);
+        const endStr = c.endDate.toISOString().slice(0, 10);
+        if (dateStr >= startStr && dateStr <= endStr) return true;
+      }
+      return false;
+    }
 
     // ---- Process each template ----
     for (const template of templates) {
@@ -60,6 +80,12 @@ export async function POST(request: NextRequest) {
         // Check if this day matches the template's dayOfWeek
         // JS getDay(): 0=Sunday, 1=Monday, ..., 6=Saturday
         if (currentDay.getDay() === template.dayOfWeek) {
+          // Skip if this date falls within a clinic closure
+          if (await isClosureDate(clinicId, currentDay)) {
+            currentDay.setDate(currentDay.getDate() + 1);
+            continue;
+          }
+
           // Parse startTime and endTime (HH:mm)
           const [startHour, startMin] = template.startTime.split(":").map(Number);
           const [endHour, endMin] = template.endTime.split(":").map(Number);

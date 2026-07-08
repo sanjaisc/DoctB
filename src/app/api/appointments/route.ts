@@ -11,6 +11,7 @@ import {
 } from "@/lib/enums";
 import { generateSecureToken, hashToken, hashIpAddress } from "@/lib/crypto";
 import { createAuditLog, AUDIT_ACTIONS } from "@/lib/audit";
+import { sendAppointmentConfirmation } from "@/lib/email";
 import { cache } from "@/lib/cache";
 import { TOKEN_EXPIRY_DAYS_AFTER_APPOINTMENT } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
@@ -304,12 +305,22 @@ export async function POST(request: NextRequest) {
       ipAddress: request.headers.get("x-forwarded-for") || undefined,
     });
 
-    // ---- 7. Invalidate caches ----
+    // ---- 7. Send confirmation email (fire-and-forget) ----
+    sendAppointmentConfirmation({
+      clinicId: appointment.clinicId,
+      patientEmail: appointment.patientEmail,
+      patientName: appointment.patientName,
+      date: appointment.startTime.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+      time: appointment.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      manageUrl: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/manage/${manageRawToken}`,
+    });
+
+    // ---- 8. Invalidate caches ----
     cache.deleteByPrefix("slots:");
     cache.deleteByPrefix("search:");
     cache.deleteByPrefix("clinic:");
 
-    // ---- 8. Return response ----
+    // ---- 9. Return response ----
     return NextResponse.json({
       success: true,
       appointment: {

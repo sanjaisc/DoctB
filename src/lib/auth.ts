@@ -14,6 +14,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/crypto";
 import { STAFF_ROLE, hasMinimumRole, isValidStaffRole } from "@/lib/enums";
+import { createAuditLog, AUDIT_ACTIONS } from "@/lib/audit";
 
 /**
  * Custom session type with our extended fields.
@@ -27,6 +28,8 @@ export type DoctASessionUser = {
   role: string;
   /** Assigned clinic ID (null for SYSTEM_MANAGER) */
   clinicId: string | null;
+  /** Whether user must change password on next login */
+  mustChangePassword: boolean;
 };
 
 export type DoctASession = {
@@ -43,6 +46,7 @@ export type DoctAJWT = {
   name: string;
   role: string;
   clinicId: string | null;
+  mustChangePassword: boolean;
   iat?: number;
   exp?: number;
   jti?: string;
@@ -102,6 +106,7 @@ export const authOptions: NextAuthOptions = {
             role: true,
             clinicId: true,
             isActive: true,
+            mustChangePassword: true,
           },
         });
 
@@ -157,6 +162,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           role: user.role,
           clinicId: user.clinicId,
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -178,6 +184,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name ?? "";
         token.role = user.role;
         token.clinicId = user.clinicId;
+        token.mustChangePassword = (user as unknown as DoctASessionUser).mustChangePassword ?? false;
         return token;
       }
 
@@ -225,6 +232,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string;
         session.user.role = token.role as string;
         session.user.clinicId = token.clinicId as string | null;
+        (session.user as DoctASessionUser).mustChangePassword = (token as DoctAJWT).mustChangePassword ?? false;
       }
       return session;
     },
@@ -233,11 +241,22 @@ export const authOptions: NextAuthOptions = {
   // ---- Events ----
   events: {
     async signIn({ user }) {
-      // Could trigger audit log here in Sprint 4+
-      console.log(`[AUTH] Staff login: ${user.email} (${user.role})`);
+      createAuditLog({
+        userId: user.id,
+        action: AUDIT_ACTIONS.STAFF_LOGIN,
+        targetType: "USER",
+        targetId: user.id,
+      });
     },
     async signOut({ token }) {
-      console.log(`[AUTH] Staff logout: ${token?.email}`);
+      if (token?.id) {
+        createAuditLog({
+          userId: token.id as string,
+          action: AUDIT_ACTIONS.STAFF_LOGOUT,
+          targetType: "USER",
+          targetId: token.id as string,
+        });
+      }
     },
   },
 

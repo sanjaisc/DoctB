@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { createAuditLog, AUDIT_ACTIONS } from "@/lib/audit";
 
 // =============================================================================
 // GET — List internal notes for an appointment
@@ -119,6 +120,13 @@ export async function POST(
       include: {
         author: { select: { id: true, name: true, role: true } },
       },
+    });
+
+    createAuditLog({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.NOTE_ADDED,
+      targetType: "APPOINTMENT",
+      targetId: id,
     });
 
     return NextResponse.json(note, { status: 201 });

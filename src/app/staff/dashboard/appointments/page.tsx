@@ -36,6 +36,10 @@ import {
   Check,
   ArrowRight,
   RefreshCw,
+  Video,
+  ExternalLink,
+  AlertTriangle,
+  Plus,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { QrCodeDisplay } from "@/components/qr-code-display";
@@ -44,6 +48,14 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -75,6 +87,9 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format, parseISO, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/staff/status-badge";
+import { PageHeader } from "@/components/staff/PageHeader";
+import { EmptyState } from "@/components/staff/empty-state";
 
 // =============================================================================
 // Types
@@ -174,24 +189,6 @@ interface WaitlistRow {
 // Status Helpers
 // =============================================================================
 
-const STATUS_STYLES: Record<string, string> = {
-  BOOKED: "bg-blue-100 text-blue-700 border-blue-200",
-  CHECKED_IN: "bg-amber-100 text-amber-700 border-amber-200",
-  COMPLETED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  CANCELLED: "bg-red-100 text-red-700 border-red-200",
-  NO_SHOW: "bg-gray-100 text-gray-600 border-gray-200",
-  ARCHIVED: "bg-muted text-muted-foreground border-muted",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  BOOKED: "Booked",
-  CHECKED_IN: "Checked In",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No Show",
-  ARCHIVED: "Archived",
-};
-
 const TRANSITION_LABELS: Record<string, string> = {
   CHECKED_IN: "Check In",
   COMPLETED: "Complete",
@@ -253,6 +250,14 @@ export default function AppointmentsPage() {
 
   // Status transition
   const [transitioningId, setTransitioningId] = useState<string | null>(null);
+
+  // Confirmation dialog for status transitions
+  const [confirmDialog, setConfirmDialog] = useState<{
+    appointmentId: string;
+    newStatus: string;
+    patientName: string;
+  } | null>(null);
+  const [confirmReason, setConfirmReason] = useState("PATIENT_CANCELLED");
 
   // QR Code dialog
   const [qrAppointmentId, setQrAppointmentId] = useState<string | null>(null);
@@ -414,14 +419,27 @@ export default function AppointmentsPage() {
     }
   };
 
-  // Status transition
-  const handleTransition = async (appointmentId: string, newStatus: string) => {
+  // Status transition — opens confirmation dialog first
+  const handleTransition = (appointmentId: string, newStatus: string, patientName?: string) => {
+    setConfirmDialog({ appointmentId, newStatus, patientName: patientName || "this appointment" });
+    setConfirmReason("PATIENT_CANCELLED");
+  };
+
+  // Execute the confirmed transition
+  const handleConfirmTransition = async () => {
+    if (!confirmDialog) return;
+    const { appointmentId, newStatus } = confirmDialog;
     setTransitioningId(appointmentId);
+    setConfirmDialog(null);
     try {
+      const body: Record<string, unknown> = { status: newStatus };
+      if (newStatus === "CANCELLED") {
+        body.cancellationReason = confirmReason;
+      }
       const res = await fetch(`/api/staff/appointments/${appointmentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -643,26 +661,19 @@ export default function AppointmentsPage() {
   const ModalityBadge = ({ modality }: { modality: string }) => {
     if (modality === "VIDEO") {
       return (
-        <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50">
+        <Badge variant="outline" className="border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
           <Calendar className="size-3 mr-1" />
           Video
         </Badge>
       );
     }
     return (
-      <Badge variant="outline" className="border-emerald-200 text-emerald-600 bg-emerald-50">
+      <Badge variant="outline" className="border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30">
         <CalendarDays className="size-3 mr-1" />
         In-Clinic
       </Badge>
     );
   };
-
-  // Status badge
-  const StatusBadge = ({ status }: { status: string }) => (
-    <Badge className={`${STATUS_STYLES[status] || STATUS_STYLES.ARCHIVED} border`}>
-      {STATUS_LABELS[status] || status}
-    </Badge>
-  );
 
   // Filter tabs
   const statusTabs = [
@@ -677,31 +688,44 @@ export default function AppointmentsPage() {
 
   // Waitlist status styles
   const WL_STATUS_STYLES: Record<string, string> = {
-    WAITING: "bg-amber-100 text-amber-700 border-amber-200",
-    OFFERED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    EXPIRED: "bg-gray-100 text-gray-600 border-gray-200",
-    ACCEPTED: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    ACTIVE: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    OFFERED: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    EXPIRED: "bg-muted text-muted-foreground border-border",
+    FULFILLED: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    REMOVED: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
   };
 
   const WL_STATUS_LABELS: Record<string, string> = {
-    WAITING: "Waiting",
+    ACTIVE: "Waiting",
     OFFERED: "Offered",
     EXPIRED: "Expired",
-    ACCEPTED: "Accepted",
+    FULFILLED: "Accepted",
+    REMOVED: "Removed",
+  };
+
+  // Conflict detection: check if an appointment overlaps with any other for same provider on same date
+  const getConflicts = (apt: AppointmentRow): AppointmentRow[] => {
+    if (!appointments.length) return [];
+    return appointments.filter((other) => {
+      if (other.id === apt.id) return false;
+      if (other.provider.id !== apt.provider.id) return false;
+      const aptDate = apt.startTime.slice(0, 10);
+      const otherDate = other.startTime.slice(0, 10);
+      if (aptDate !== otherDate) return false;
+      if (other.status === "CANCELLED" || other.status === "NO_SHOW") return false;
+      return apt.startTime < other.endTime && apt.endTime > other.startTime;
+    });
   };
 
   return (
-    <div className="space-y-4">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Appointments</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Manage and review all clinic appointments
-        </p>
-      </div>
+    <div className="space-y-6 animate-in fade-in-0 duration-300">
+      <PageHeader
+        title="Appointments"
+        description="Manage and review all clinic appointments"
+      />
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl border border-border/60 shadow-sm p-4 space-y-3">
+      <div className="bg-background rounded-xl border border-border/60 shadow-sm p-4 space-y-3">
         {/* Status Tabs */}
         <div className="flex flex-wrap gap-1.5">
           {statusTabs.map((tab) => {
@@ -723,9 +747,9 @@ export default function AppointmentsPage() {
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer border ${
                   isActive
                     ? isWl
-                      ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-                      : "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                    : "bg-white text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                      ? "bg-amber-600 dark:bg-amber-500 text-white border-amber-600 dark:border-amber-500 shadow-sm"
+                      : "bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500 shadow-sm"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
                 }`}
               >
                 {isWl && <Bell className="size-3 mr-1 inline" />}
@@ -820,12 +844,19 @@ export default function AppointmentsPage() {
               setDateFrom(format(new Date(), "yyyy-MM-dd"));
               setDateTo(format(addDays(new Date(), 30), "yyyy-MM-dd"));
             }}
-            className="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer flex items-center gap-1"
+            className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium cursor-pointer flex items-center gap-1"
           >
             <Filter className="size-3" />
             Clear filters
           </button>
         )}
+        <button
+          onClick={() => setViewMode("waitlist")}
+          className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 font-medium cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 transition-colors"
+        >
+          <Plus className="size-3" />
+          Add to Waitlist
+        </button>
       </div>
       )}
 
@@ -833,107 +864,98 @@ export default function AppointmentsPage() {
       {/* WAITLIST VIEW                                                       */}
       {/* ================================================================== */}
       {viewMode === "waitlist" ? (
-        <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Joined</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Patient</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Provider</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Specialty</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Contacts</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {waitlistLoading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i} className="border-b border-border/30">
-                      <td className="py-3 px-4"><Skeleton className="h-4 w-24" /></td>
-                      <td className="py-3 px-4"><Skeleton className="h-4 w-32" /></td>
-                      <td className="py-3 px-4 hidden md:table-cell"><Skeleton className="h-4 w-28" /></td>
-                      <td className="py-3 px-4 hidden lg:table-cell"><Skeleton className="h-4 w-24" /></td>
-                      <td className="py-3 px-4"><Skeleton className="h-5 w-16" /></td>
-                      <td className="py-3 px-4 hidden sm:table-cell"><Skeleton className="h-4 w-8" /></td>
-                      <td className="py-3 px-4"><Skeleton className="h-8 w-8 ml-auto" /></td>
-                    </tr>
-                  ))
-                ) : waitlistError ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center">
-                      <p className="text-sm text-red-500">{waitlistError}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchWaitlist}
-                        className="mt-2 cursor-pointer"
-                      >
-                        Retry
-                      </Button>
-                    </td>
-                  </tr>
-                ) : waitlistEntries.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-16 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
-                          <Bell className="size-5 text-muted-foreground/60" />
-                        </div>
-                        <p className="text-sm font-medium text-muted-foreground">No waitlist entries</p>
-                        <p className="text-xs text-muted-foreground/70">
-                          Patients will appear here when they join the waitlist
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  waitlistEntries.map((entry, index) => (
-                    <tr
-                      key={entry.id}
-                      className={`border-b border-border/30 transition-colors hover:bg-amber-50/30 ${
-                        index % 2 === 0 ? "bg-white" : "bg-muted/15"
-                      }`}
+        <div className="bg-background rounded-xl border border-border/60 shadow-sm overflow-hidden">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow className="border-b border-border/60">
+                <TableHead className="py-3 px-4 whitespace-nowrap">Joined</TableHead>
+                <TableHead className="py-3 px-4 whitespace-nowrap">Patient</TableHead>
+                <TableHead className="py-3 px-4 whitespace-nowrap hidden md:table-cell">Provider</TableHead>
+                <TableHead className="py-3 px-4 whitespace-nowrap hidden lg:table-cell">Specialty</TableHead>
+                <TableHead className="py-3 px-4 whitespace-nowrap">Status</TableHead>
+                <TableHead className="py-3 px-4 whitespace-nowrap hidden sm:table-cell">Contacts</TableHead>
+                <TableHead className="text-right py-3 px-4 whitespace-nowrap">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {waitlistLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i} className="border-b border-border/30">
+                    <TableCell className="py-3 px-4"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="py-3 px-4"><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell className="py-3 px-4 hidden md:table-cell"><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell className="py-3 px-4 hidden lg:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="py-3 px-4"><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell className="py-3 px-4 hidden sm:table-cell"><Skeleton className="h-4 w-8" /></TableCell>
+                    <TableCell className="py-3 px-4"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : waitlistError ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-12 text-center">
+                    <p className="text-sm text-red-500 dark:text-red-400">{waitlistError}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchWaitlist}
+                      className="mt-2"
                     >
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="size-3.5 text-muted-foreground/60" />
-                          <span className="text-xs text-muted-foreground">
-                            {format(parseISO(entry.createdAt), "MMM d, h:mm a")}
-                          </span>
+                      Retry
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : waitlistEntries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-16 text-center">
+                    <EmptyState icon={Bell} title="No waitlist entries" description="Patients will appear here when they join the waitlist" />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                waitlistEntries.map((entry, index) => (
+                  <TableRow
+                    key={entry.id}
+                    className={`border-b border-border/30 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-950/20 ${
+                      index % 2 === 0 ? "bg-background" : "bg-muted/15"
+                    }`}
+                  >
+                    <TableCell className="py-3 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="size-3.5 text-muted-foreground/60" />
+                        <span className="text-xs text-muted-foreground">
+                          {format(parseISO(entry.createdAt), "MMM d, h:mm a")}
+                        </span>
+                      </div>
+                      {entry.expiresAt && (
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                          Expires: {format(parseISO(entry.expiresAt), "MMM d")}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="size-7 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                          <User className="size-3.5 text-amber-600 dark:text-amber-400" />
                         </div>
-                        {entry.expiresAt && (
-                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                            Expires: {format(parseISO(entry.expiresAt), "MMM d")}
-                          </p>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="size-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                            <User className="size-3.5 text-amber-600" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{entry.patientName}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {entry.patientEmail}
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{entry.patientName}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {entry.patientEmail}
                             </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 hidden md:table-cell whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 hidden md:table-cell whitespace-nowrap">
                         <span className="text-sm">{entry.providerName}</span>
-                      </td>
-                      <td className="py-3 px-4 hidden lg:table-cell whitespace-nowrap text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 hidden lg:table-cell whitespace-nowrap text-muted-foreground">
                         {entry.specialtyName}
-                      </td>
-                      <td className="py-3 px-4">
+                      </TableCell>
+                      <TableCell className="py-3 px-4">
                         <Badge className={`${WL_STATUS_STYLES[entry.status] || WL_STATUS_STYLES.WAITING} border`}>
                           {WL_STATUS_LABELS[entry.status] || entry.status}
                         </Badge>
-                      </td>
-                      <td className="py-3 px-4 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 hidden sm:table-cell">
                         <span className="text-sm text-muted-foreground">
                           {entry.contactCount}
                         </span>
@@ -942,14 +964,14 @@ export default function AppointmentsPage() {
                             Last: {format(parseISO(entry.lastContactAt), "MMM d")}
                           </p>
                         )}
-                      </td>
-                      <td className="py-3 px-4 text-right">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-8 cursor-pointer"
+                              className="size-8"
                               disabled={waitlistActionId === entry.id}
                             >
                               {waitlistActionId === entry.id ? (
@@ -960,12 +982,12 @@ export default function AppointmentsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            {entry.status === "WAITING" && (
+                            {entry.status === "ACTIVE" && (
                               <DropdownMenuItem
                                 onClick={() => handleWaitlistAction(entry.id, "OFFERED")}
                                 className="cursor-pointer"
                               >
-                                <CheckCircle2 className="size-3.5 mr-2 text-emerald-600" />
+                                <CheckCircle2 className="size-3.5 mr-2 text-emerald-600 dark:text-emerald-400" />
                                 Mark as Offered
                               </DropdownMenuItem>
                             )}
@@ -973,16 +995,16 @@ export default function AppointmentsPage() {
                               onClick={() => handleWaitlistAction(entry.id, "contact")}
                               className="cursor-pointer"
                             >
-                              <Phone className="size-3.5 mr-2 text-amber-600" />
+                              <Phone className="size-3.5 mr-2 text-amber-600 dark:text-amber-400" />
                               Record Contact
                             </DropdownMenuItem>
-                            {(entry.status === "WAITING" || entry.status === "OFFERED") && (
+                            {(entry.status === "ACTIVE" || entry.status === "OFFERED") && (
                               <DropdownMenuSeparator />
                             )}
-                            {(entry.status === "WAITING" || entry.status === "OFFERED") && (
+                            {(entry.status === "ACTIVE" || entry.status === "OFFERED") && (
                               <DropdownMenuItem
                                 onClick={() => handleWaitlistAction(entry.id, "EXPIRED")}
-                                className="cursor-pointer text-red-600 focus:text-red-600"
+                                className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
                               >
                                 <XCircle className="size-3.5 mr-2" />
                                 Mark as Expired
@@ -990,130 +1012,121 @@ export default function AppointmentsPage() {
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
       ) : (
-      <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/30">
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Time</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Patient</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Provider</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Service</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Modality</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                // Skeleton rows
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b border-border/30">
-                    <td className="py-3 px-4"><Skeleton className="h-4 w-20" /></td>
-                    <td className="py-3 px-4"><Skeleton className="h-4 w-32" /></td>
-                    <td className="py-3 px-4 hidden md:table-cell"><Skeleton className="h-4 w-28" /></td>
-                    <td className="py-3 px-4 hidden lg:table-cell"><Skeleton className="h-4 w-24" /></td>
-                    <td className="py-3 px-4 hidden sm:table-cell"><Skeleton className="h-4 w-16" /></td>
-                    <td className="py-3 px-4"><Skeleton className="h-5 w-16" /></td>
-                    <td className="py-3 px-4"><Skeleton className="h-8 w-8 ml-auto" /></td>
-                  </tr>
-                ))
-              ) : error ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <p className="text-sm text-red-500">{error}</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={fetchAppointments}
-                      className="mt-2"
-                    >
-                      Retry
-                    </Button>
-                  </td>
-                </tr>
-              ) : appointments.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
-                        <Calendar className="size-5 text-muted-foreground/60" />
-                      </div>
-                      <p className="text-sm font-medium text-muted-foreground">No appointments found</p>
-                      <p className="text-xs text-muted-foreground/70">
-                        {statusFilter || search || providerFilter
-                          ? "Try adjusting your filters"
-                          : "No upcoming appointments in this date range. Try expanding the date range or check past dates."}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                appointments.map((apt, index) => (
-                  <tr
-                    key={apt.id}
-                    className={`border-b border-border/30 transition-colors hover:bg-emerald-50/30 ${
-                      index % 2 === 0 ? "bg-white" : "bg-muted/15"
+      <div className="bg-background rounded-xl border border-border/60 shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader className="bg-muted/30">
+            <TableRow className="border-b border-border/60">
+              <TableHead className="py-3 px-4 whitespace-nowrap">Time</TableHead>
+              <TableHead className="py-3 px-4 whitespace-nowrap">Patient</TableHead>
+              <TableHead className="py-3 px-4 whitespace-nowrap hidden md:table-cell">Provider</TableHead>
+              <TableHead className="py-3 px-4 whitespace-nowrap hidden lg:table-cell">Service</TableHead>
+              <TableHead className="py-3 px-4 whitespace-nowrap hidden sm:table-cell">Modality</TableHead>
+              <TableHead className="py-3 px-4 whitespace-nowrap">Status</TableHead>
+              <TableHead className="text-right py-3 px-4 whitespace-nowrap">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i} className="border-b border-border/30">
+                  <TableCell className="py-3 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell className="py-3 px-4"><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell className="py-3 px-4 hidden md:table-cell"><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell className="py-3 px-4 hidden lg:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell className="py-3 px-4 hidden sm:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell className="py-3 px-4"><Skeleton className="h-5 w-16" /></TableCell>
+                  <TableCell className="py-3 px-4"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                </TableRow>
+              ))
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12 text-center">
+                  <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchAppointments}
+                    className="mt-2"
+                  >
+                    Retry
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ) : appointments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-16 text-center">
+                    <EmptyState icon={Calendar} title="No appointments found" description={statusFilter || search || providerFilter ? "Try adjusting your filters" : "No upcoming appointments in this date range. Try expanding the date range or check past dates."} />
+                </TableCell>
+              </TableRow>
+            ) : (
+              appointments.map((apt, index) => (
+                <TableRow
+                  key={apt.id}
+                  className={`border-b border-border/30 transition-colors hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 ${
+                    index % 2 === 0 ? "bg-background" : "bg-muted/15"
                     }`}
                   >
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-muted-foreground/60" />
-                        <span className="font-medium">
-                          {format(parseISO(apt.startTime), "h:mm a")}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {format(parseISO(apt.startTime), "MMM d, yyyy")}
-                      </p>
-                    </td>
-                    <td className="py-3 px-4">
+                  <TableCell className="py-3 px-4 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => openDetail(apt.id)}
-                        className="flex items-center gap-2 text-left cursor-pointer hover:text-emerald-700 transition-colors w-full"
+                        className="flex items-center gap-2 text-left cursor-pointer hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors w-full"
                       >
-                        <div className="size-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                          <User className="size-3.5 text-emerald-600" />
+                        <div className="size-7 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                          <User className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{apt.patientName}</p>
+                          <p className="font-medium truncate flex items-center gap-1.5">
+                            {apt.patientName}
+                            {(() => {
+                              const conflicts = getConflicts(apt);
+                              if (conflicts.length === 0) return null;
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded-full font-medium"
+                                  title={`Overlaps with ${conflicts.map(c => c.patientName).join(", ")}`}
+                                >
+                                  <AlertTriangle className="size-2.5" />
+                                  {conflicts.length > 1 ? `${conflicts.length} conflicts` : "Overlap"}
+                                </span>
+                              );
+                            })()}
+                          </p>
                           <p className="text-xs text-muted-foreground truncate">
                             {apt.patientEmail}
                           </p>
                         </div>
                       </button>
-                    </td>
-                    <td className="py-3 px-4 hidden md:table-cell whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="py-3 px-4 hidden md:table-cell whitespace-nowrap">
                       <span className="text-sm">
                         Dr. {apt.provider.firstName} {apt.provider.lastName}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 hidden lg:table-cell whitespace-nowrap text-muted-foreground">
+                    </TableCell>
+                    <TableCell className="py-3 px-4 hidden lg:table-cell whitespace-nowrap text-muted-foreground">
                       {apt.service.name}
-                    </td>
-                    <td className="py-3 px-4 hidden sm:table-cell">
+                    </TableCell>
+                    <TableCell className="py-3 px-4 hidden sm:table-cell">
                       <ModalityBadge modality={apt.modality} />
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
                       <StatusBadge status={apt.status} />
-                    </td>
-                    <td className="py-3 px-4 text-right">
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 cursor-pointer"
+                            className="size-8"
                             disabled={transitioningId === apt.id}
                           >
                             {transitioningId === apt.id ? (
@@ -1131,10 +1144,10 @@ export default function AppointmentsPage() {
                           <DropdownMenuSeparator />
                           {apt.status === "BOOKED" && (
                             <DropdownMenuItem
-                              onClick={() => handleTransition(apt.id, "CHECKED_IN")}
+                              onClick={() => handleTransition(apt.id, "CHECKED_IN", apt.patientName)}
                               className="cursor-pointer"
                             >
-                              <UserCheck className="size-3.5 mr-2 text-amber-600" />
+                              <UserCheck className="size-3.5 mr-2 text-amber-600 dark:text-amber-400" />
                               Check In
                             </DropdownMenuItem>
                           )}
@@ -1143,30 +1156,30 @@ export default function AppointmentsPage() {
                               onClick={() => openReschedule(apt)}
                               className="cursor-pointer"
                             >
-                              <RefreshCw className="size-3.5 mr-2 text-blue-600" />
+                              <RefreshCw className="size-3.5 mr-2 text-blue-600 dark:text-blue-400" />
                               Reschedule
                             </DropdownMenuItem>
                           )}
                           {apt.status === "CHECKED_IN" && (
                             <DropdownMenuItem
-                              onClick={() => handleTransition(apt.id, "COMPLETED")}
+                              onClick={() => handleTransition(apt.id, "COMPLETED", apt.patientName)}
                               className="cursor-pointer"
                             >
-                              <CheckCircle2 className="size-3.5 mr-2 text-emerald-600" />
+                              <CheckCircle2 className="size-3.5 mr-2 text-emerald-600 dark:text-emerald-400" />
                               Complete
                             </DropdownMenuItem>
                           )}
                           {(apt.status === "BOOKED" || apt.status === "CHECKED_IN") && (
                             <DropdownMenuItem
-                              onClick={() => handleTransition(apt.id, "CANCELLED")}
-                              className="cursor-pointer text-red-600 focus:text-red-600"
+                              onClick={() => handleTransition(apt.id, "CANCELLED", apt.patientName)}
+                              className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
                             >
                               <XCircle className="size-3.5 mr-2" />
                               Cancel
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          {(apt.status === "BOOKED" || apt.status === "CONFIRMED") && (
+                          {apt.status === "BOOKED" && (
                             <DropdownMenuItem
                               onClick={() => {
                                 setQrAppointmentId(apt.id);
@@ -1174,13 +1187,13 @@ export default function AppointmentsPage() {
                               }}
                               className="cursor-pointer"
                             >
-                              <QrCode className="size-3.5 mr-2 text-emerald-600" />
+                              <QrCode className="size-3.5 mr-2 text-emerald-600 dark:text-emerald-400" />
                               QR Code
                             </DropdownMenuItem>
                           )}
                           {apt.status === "BOOKED" && (
                             <DropdownMenuItem
-                              onClick={() => handleTransition(apt.id, "NO_SHOW")}
+                              onClick={() => handleTransition(apt.id, "NO_SHOW", apt.patientName)}
                               className="cursor-pointer"
                             >
                               <UserX className="size-3.5 mr-2" />
@@ -1189,16 +1202,13 @@ export default function AppointmentsPage() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
+            </TableBody>
+          </Table>
+          {!loading && totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border/40 bg-muted/20">
             <p className="text-xs text-muted-foreground">
               Page {page} of {totalPages}
@@ -1207,7 +1217,7 @@ export default function AppointmentsPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="size-8 cursor-pointer"
+                className="size-8"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
@@ -1229,7 +1239,7 @@ export default function AppointmentsPage() {
                     key={pageNum}
                     variant={pageNum === page ? "default" : "outline"}
                     size="icon"
-                    className={`size-8 cursor-pointer ${pageNum === page ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                    className={`size-8 ${pageNum === page ? "bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white" : ""}`}
                     onClick={() => setPage(pageNum)}
                   >
                     {pageNum}
@@ -1239,7 +1249,7 @@ export default function AppointmentsPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="size-8 cursor-pointer"
+                className="size-8"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
@@ -1268,8 +1278,8 @@ export default function AppointmentsPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <div className="size-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                <RefreshCw className="size-4 text-blue-600" />
+              <div className="size-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <RefreshCw className="size-4 text-blue-600 dark:text-blue-400" />
               </div>
               Reschedule Appointment
             </DialogTitle>
@@ -1286,9 +1296,7 @@ export default function AppointmentsPage() {
                   <span className="text-sm font-medium text-foreground">
                     {rescheduleApt.patientName}
                   </span>
-                  <Badge className={cn("text-[10px] border", STATUS_STYLES[rescheduleApt.status])}>
-                    {STATUS_LABELS[rescheduleApt.status]}
-                  </Badge>
+                  <StatusBadge status={rescheduleApt.status} />
                 </div>
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   <p>
@@ -1380,8 +1388,8 @@ export default function AppointmentsPage() {
                             className={cn(
                               "flex flex-col items-center justify-center rounded-lg border p-2.5 text-center transition-all cursor-pointer",
                               isSelected
-                                ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-500/20"
-                                : "border-border/60 hover:border-emerald-300 hover:bg-emerald-50/50 text-foreground"
+                                ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 shadow-sm ring-1 ring-emerald-500/20 dark:ring-emerald-400/20"
+                                : "border-border/60 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 text-foreground"
                             )}
                           >
                             <span className="text-sm font-medium">
@@ -1400,13 +1408,13 @@ export default function AppointmentsPage() {
 
               {/* Summary when slot selected */}
               {rescheduleSelectedSlotId && (
-                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
-                  <p className="text-xs font-medium text-emerald-800 mb-1">New Appointment Time</p>
+                <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-3">
+                  <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200 mb-1">New Appointment Time</p>
                   {(() => {
                     const selectedSlot = rescheduleSlots.find((s) => s.id === rescheduleSelectedSlotId);
                     if (!selectedSlot) return null;
                     return (
-                      <div className="flex items-center gap-2 text-sm text-emerald-700">
+                      <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
                         <span className="font-medium">
                           {format(parseISO(selectedSlot.startTime), "EEE, MMM d 'at' h:mm a")}
                         </span>
@@ -1422,7 +1430,7 @@ export default function AppointmentsPage() {
               <div className="flex gap-3 pt-1">
                 <Button
                   variant="outline"
-                  className="flex-1 cursor-pointer"
+                  className="flex-1"
                   onClick={() => {
                     setRescheduleApt(null);
                     setRescheduleSlots([]);
@@ -1433,7 +1441,7 @@ export default function AppointmentsPage() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                  className="flex-1 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white"
                   disabled={!rescheduleSelectedSlotId || rescheduleSubmitting}
                   onClick={handleRescheduleConfirm}
                 >
@@ -1447,6 +1455,100 @@ export default function AppointmentsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ================================================================== */}
+      {/* CONFIRMATION DIALOG                                                */}
+      {/* ================================================================== */}
+      <Dialog
+        open={!!confirmDialog}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {confirmDialog?.newStatus === "CANCELLED" ? (
+                <XCircle className="size-5 text-red-600 dark:text-red-400" />
+              ) : (
+                <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+              )}
+              {confirmDialog?.newStatus === "CANCELLED"
+                ? "Cancel Appointment"
+                : confirmDialog?.newStatus === "CHECKED_IN"
+                  ? "Check In Patient"
+                  : confirmDialog?.newStatus === "COMPLETED"
+                    ? "Mark Appointment Completed"
+                    : confirmDialog?.newStatus === "NO_SHOW"
+                      ? "Mark as No Show"
+                      : `Change to ${confirmDialog?.newStatus}`}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog?.patientName
+                ? `Confirm action for ${confirmDialog.patientName}`
+                : "Are you sure you want to proceed?"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Cancellation reason selector */}
+            {confirmDialog?.newStatus === "CANCELLED" && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Cancellation Reason</Label>
+                <Select value={confirmReason} onValueChange={setConfirmReason}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PATIENT_CANCELLED">Patient Cancelled</SelectItem>
+                    <SelectItem value="CLINIC_CANCELLED">Clinic Cancelled</SelectItem>
+                    <SelectItem value="DOUBLE_BOOKING">Double Booking</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setConfirmDialog(null)}
+                disabled={!!transitioningId}
+              >
+                Cancel
+              </Button>
+              <Button
+                className={`flex-1 ${
+ confirmDialog?.newStatus === "CANCELLED"
+ ? "bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white"
+ : confirmDialog?.newStatus === "CHECKED_IN"
+ ? "bg-amber-600 dark:bg-amber-500 hover:bg-amber-700 dark:hover:bg-amber-600 text-white"
+ : confirmDialog?.newStatus === "COMPLETED"
+ ? "bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white"
+ : "bg-gray-700 dark:bg-gray-600 hover:bg-gray-800 dark:hover:bg-gray-500 text-white"
+ }`}
+                disabled={!!transitioningId}
+                onClick={handleConfirmTransition}
+              >
+                {transitioningId ? (
+                  <Loader2 className="size-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Check className="size-4 mr-1.5" />
+                )}
+                {confirmDialog?.newStatus === "CANCELLED"
+                  ? "Cancel Appointment"
+                  : confirmDialog?.newStatus === "CHECKED_IN"
+                    ? "Check In"
+                    : confirmDialog?.newStatus === "COMPLETED"
+                      ? "Complete"
+                      : confirmDialog?.newStatus === "NO_SHOW"
+                        ? "Mark No Show"
+                        : "Confirm"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1465,7 +1567,7 @@ export default function AppointmentsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <QrCode className="size-5 text-emerald-600" />
+              <QrCode className="size-5 text-emerald-600 dark:text-emerald-400" />
               Appointment QR Code
             </DialogTitle>
             <DialogDescription>
@@ -1534,17 +1636,17 @@ export default function AppointmentsPage() {
                         key={t}
                         variant="outline"
                         size="sm"
-                        className={`cursor-pointer transition-all ${
-                          t === "CANCELLED"
-                            ? "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            : t === "COMPLETED"
-                              ? "border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                              : t === "CHECKED_IN"
-                                ? "border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
-                                : ""
-                        }`}
+                        className={`transition-all ${
+  t === "CANCELLED"
+  ? "border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 dark:hover:text-red-300"
+  : t === "COMPLETED"
+  ? "border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300"
+  : t === "CHECKED_IN"
+  ? "border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 hover:text-amber-700 dark:hover:text-amber-300"
+  : ""
+ }`}
                         disabled={transitioningId === detail.id}
-                        onClick={() => handleTransition(detail.id, t)}
+                        onClick={() => handleTransition(detail.id, t, detail.patientName)}
                       >
                         {transitioningId === detail.id ? (
                           <Loader2 className="size-3.5 mr-1.5 animate-spin" />
@@ -1562,8 +1664,8 @@ export default function AppointmentsPage() {
                   <div className="rounded-lg border border-border/60 p-4 space-y-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <User className="size-4 text-emerald-600" />
+                        <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                          <User className="size-4 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div>
                           <p className="font-semibold text-sm">Patient</p>
@@ -1582,7 +1684,7 @@ export default function AppointmentsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="size-8 p-0 cursor-pointer text-muted-foreground hover:text-emerald-700"
+                          className="size-8 p-0 text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-300"
                           onClick={() => setEditingPatient(true)}
                           title="Edit patient details"
                         >
@@ -1592,7 +1694,7 @@ export default function AppointmentsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-xs cursor-pointer text-muted-foreground hover:text-red-600"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
                           onClick={() => {
                             setEditingPatient(false);
                             setEditName(detail.patientName);
@@ -1648,7 +1750,7 @@ export default function AppointmentsPage() {
                         </div>
                         <Button
                           size="sm"
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                          className="w-full bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white"
                           disabled={patientSaving || !editName.trim() || !editEmail.trim()}
                           onClick={handleSavePatient}
                         >
@@ -1718,10 +1820,10 @@ export default function AppointmentsPage() {
                           }
                         }}
                         disabled={patientSaving}
-                        className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                        className="data-[state=checked]:bg-emerald-600 dark:data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-600 dark:data-[state=checked]:border-emerald-500"
                       />
                       <div>
-                        <span className="text-sm font-medium text-foreground group-hover:text-emerald-700 transition-colors">
+                        <span className="text-sm font-medium text-foreground group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
                           Insurance Info Received
                         </span>
                         <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
@@ -1734,8 +1836,8 @@ export default function AppointmentsPage() {
                   {/* Appointment Info Card */}
                   <div className="rounded-lg border border-border/60 p-4 space-y-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                        <FileText className="size-4 text-emerald-600" />
+                      <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                        <FileText className="size-4 text-emerald-600 dark:text-emerald-400" />
                       </div>
                       <div>
                         <p className="font-semibold text-sm">Appointment Info</p>
@@ -1757,12 +1859,26 @@ export default function AppointmentsPage() {
                       <div className="flex items-center gap-2">
                         <ModalityBadge modality={detail.modality} />
                         {detail.intakeCompleted && (
-                          <Badge variant="outline" className="border-emerald-200 text-emerald-600 bg-emerald-50 text-[10px]">
+                          <Badge variant="outline" className="border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 text-[10px]">
                             <CheckCircle2 className="size-2.5 mr-0.5" /> Intake Done
                           </Badge>
                         )}
                       </div>
-                      <p className="text-muted-foreground">
+                      {detail.modality === "VIDEO" && (detail.provider as Record<string, unknown>)?.videoVisitLink && (
+                        <div className="flex items-center gap-2 pt-1">
+                          <Video className="size-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                          <a
+                            href={(detail.provider as Record<string, unknown>).videoVisitLink as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 inline-flex items-center gap-1"
+                          >
+                            Join Telehealth Visit
+                            <ExternalLink className="size-3" />
+                          </a>
+                        </div>
+                      )}
+                      <p className="text-muted-foreground pt-1">
                         <span className="font-medium">Reason:</span> {detail.reasonForVisit}
                       </p>
                     </div>
@@ -1772,7 +1888,7 @@ export default function AppointmentsPage() {
                 {/* Insurance Info */}
                 <div className="rounded-lg border border-border/60 p-4">
                   <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Shield className="size-4 text-emerald-600" />
+                    <Shield className="size-4 text-emerald-600 dark:text-emerald-400" />
                     Insurance
                   </h4>
                   {detail.insurance ? (
@@ -1780,14 +1896,14 @@ export default function AppointmentsPage() {
                       <div>
                         <p className="text-sm font-medium">{detail.insurance.name}</p>
                         {detail.isDemoInsurance && (
-                          <Badge variant="outline" className="mt-1 border-emerald-200 text-emerald-600 bg-emerald-50 text-[10px]">
+                          <Badge variant="outline" className="mt-1 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 text-[10px]">
                             Demo Plan
                           </Badge>
                         )}
                       </div>
                       <div className="text-right text-sm">
                         {detail.isDemoInsurance ? (
-                          <span className="text-emerald-600 font-medium">Free</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">Free</span>
                         ) : detail.depositCents > 0 ? (
                           <div>
                             <p className="text-muted-foreground">Deposit: {formatCents(detail.depositCents)}</p>
@@ -1809,7 +1925,7 @@ export default function AppointmentsPage() {
                 {detail.ledger && (
                   <div className="rounded-lg border border-border/60 p-4">
                     <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <CreditCard className="size-4 text-emerald-600" />
+                      <CreditCard className="size-4 text-emerald-600 dark:text-emerald-400" />
                       Financial Info
                     </h4>
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -1855,7 +1971,7 @@ export default function AppointmentsPage() {
                 {detail.tokens.length > 0 && (
                   <div className="rounded-lg border border-border/60 p-4">
                     <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <Hash className="size-4 text-emerald-600" />
+                      <Hash className="size-4 text-emerald-600 dark:text-emerald-400" />
                       Patient Management Token
                     </h4>
                     <div className="space-y-1.5">
@@ -1883,16 +1999,16 @@ export default function AppointmentsPage() {
 
                 {/* Cancellation Info */}
                 {detail.status === "CANCELLED" && detail.cancellationReason && (
-                  <div className="rounded-lg border border-red-200 bg-red-50/50 p-4">
-                    <h4 className="text-sm font-semibold text-red-700 mb-1 flex items-center gap-2">
+                  <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20 p-4">
+                    <h4 className="text-sm font-semibold text-red-700 dark:text-red-300 mb-1 flex items-center gap-2">
                       <XCircle className="size-4" />
                       Cancellation Details
                     </h4>
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-red-600 dark:text-red-400">
                       Reason: {detail.cancellationReason.replace(/_/g, " ")}
                     </p>
                     {detail.cancelledAt && (
-                      <p className="text-xs text-red-500 mt-1">
+                      <p className="text-xs text-red-500 dark:text-red-400 mt-1">
                         Cancelled: {format(parseISO(detail.cancelledAt), "MMM d, yyyy 'at' h:mm a")}
                       </p>
                     )}
@@ -1902,7 +2018,7 @@ export default function AppointmentsPage() {
                 {/* Internal Notes */}
                 <div className="rounded-lg border border-border/60 p-4">
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <StickyNote className="size-4 text-emerald-600" />
+                    <StickyNote className="size-4 text-emerald-600 dark:text-emerald-400" />
                     Internal Notes
                     {detail.notes.length > 0 && (
                       <Badge variant="secondary" className="text-[10px] ml-1">
@@ -1921,7 +2037,7 @@ export default function AppointmentsPage() {
                         <div key={note.id} className="flex gap-2.5">
                           {/* Author avatar */}
                           <div className="shrink-0 mt-0.5">
-                            <div className="size-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-semibold text-emerald-700">
+                            <div className="size-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                               {note.author?.name?.charAt(0)?.toUpperCase() || "?"}
                             </div>
                           </div>
@@ -1959,7 +2075,7 @@ export default function AppointmentsPage() {
                     />
                     <Button
                       size="icon"
-                      className="size-9 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer self-end"
+                      className="size-9 shrink-0 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white self-end"
                       disabled={!noteContent.trim() || noteSubmitting}
                       onClick={handleAddNote}
                     >

@@ -54,6 +54,16 @@ export default function StaffLoginPage() {
         return;
       }
 
+      // Check if user must change password
+      try {
+        const sessRes = await fetch("/api/auth/session");
+        const sessData = await sessRes.json();
+        if (sessData?.user?.mustChangePassword) {
+          window.location.href = "/staff/change-password";
+          return;
+        }
+      } catch {}
+
       // Use full page navigation to ensure session cookie is sent with the request.
       // router.push can cause a race condition where the cookie isn't available yet.
       window.location.href = callbackUrl;
@@ -174,7 +184,7 @@ export default function StaffLoginPage() {
                     required
                     autoComplete="current-password"
                     disabled={isLoading}
-                    className="pl-10 pr-10 h-11 bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                    className="pl-10 pr-10 h-11 bg-muted/30 border-border/50 focus:bg-background transition-colors"
                   />
                   <button
                     type="button"
@@ -206,7 +216,7 @@ export default function StaffLoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading || !email || !password}
-                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition-all cursor-pointer"
+                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition-all"
               >
                 {isLoading ? (
                   <span className="inline-flex items-center">

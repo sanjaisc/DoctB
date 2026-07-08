@@ -1,0 +1,187 @@
+{
+  "chunk_id": "clinicbook-sprint1-summary",
+  "source_files": [
+    "prisma/schema.prisma",
+    "src/lib/enums.ts",
+    "src/lib/crypto.ts",
+    "src/lib/cache.ts",
+    "src/lib/constants.ts",
+    "src/lib/audit.ts",
+    "src/lib/auth.ts",
+    "src/app/api/auth/[...nextauth]/route.ts",
+    "src/middleware.ts",
+    "src/components/providers.tsx",
+    "src/components/search/search-page.tsx",
+    "src/components/booking/booking-page.tsx"
+  ],
+  "project": {
+    "name": "ClinicBook",
+    "description": "Clinic Directory & Booking Platform — a Next.js application for discovering medical providers and booking appointments",
+    "stack": {
+      "framework": "Next.js 16 (App Router)",
+      "language": "TypeScript",
+      "styling": "Tailwind CSS 4 + shadcn/ui",
+      "orm": "Prisma (SQLite)",
+      "auth": "NextAuth v4 (CredentialsProvider, JWT strategy)",
+      "caching": "In-memory Map with TTL and tag-based invalidation (no Redis)",
+      "background_jobs": "none (no BullMQ / no Redis)"
+    },
+    "status": "Sprint 1 completed — project initialization, Prisma schema, NextAuth config, base middleware",
+    "adaptations_from_original_plan": [
+      "SQLite instead of PostgreSQL",
+      "In-memory cache instead of Redis",
+      "NextAuth v4 instead of v5",
+      "No BullMQ (no background job queue)"
+    ]
+  },
+  "entities": [
+    {
+      "id": "prisma-schema",
+      "type": "schema",
+      "label": "Prisma Schema (26 models)",
+      "description": "Complete database schema for the clinic directory and booking platform. 26 models including SystemConfig, Specialty, Service, Insurance, Amenity, Language, Clinic, Provider, SlotTemplate, Slot, SlotLock, Appointment, AppointmentLedger, InternalNote, Token, Review, WaitlistEntry, ClinicClosure, User, AuditLog and their join tables (ClinicInsurance, ClinicAmenity, ProviderLanguage, ProviderService, ServiceInsurance). Enum-like fields use String with application-level validation.",
+      "properties": {
+        "total_models": 26,
+        "datasource": "sqlite",
+        "key_models": ["Clinic", "Provider", "Appointment", "Slot", "User", "AuditLog"],
+        "join_tables": ["ClinicInsurance", "ClinicAmenity", "ProviderLanguage", "ProviderService", "ServiceInsurance"]
+      }
+    },
+    {
+      "id": "lib-enums",
+      "type": "module",
+      "label": "Enums Module (src/lib/enums.ts)",
+      "description": "Type-safe string constants for role hierarchy, appointment status, slot modality, patient type, gender, etc. Defines ROLE_HIERARCHY for access control (SYSTEM_ADMIN > SUPER_ADMIN > STAFF > PATIENT).",
+      "source_file": "src/lib/enums.ts"
+    },
+    {
+      "id": "lib-crypto",
+      "type": "module",
+      "label": "Crypto Module (src/lib/crypto.ts)",
+      "description": "Password hashing (bcrypt), SHA-256 token hashing, timing-safe verification, secure random generation.",
+      "source_file": "src/lib/crypto.ts"
+    },
+    {
+      "id": "lib-cache",
+      "type": "module",
+      "label": "Cache Module (src/lib/cache.ts)",
+      "description": "In-memory cache with configurable TTL, prefix-based deletion, tag-based invalidation. Singleton pattern.",
+      "source_file": "src/lib/cache.ts"
+    },
+    {
+      "id": "lib-constants",
+      "type": "module",
+      "label": "Constants Module (src/lib/constants.ts)",
+      "description": "AUDIT_ACTIONS (20+ action types), SEARCH_PARAMS, COOKIE_NAMES, pagination defaults, sort options.",
+      "source_file": "src/lib/constants.ts"
+    },
+    {
+      "id": "lib-audit",
+      "type": "module",
+      "label": "Audit Module (src/lib/audit.ts)",
+      "description": "Audit logging utility that writes AuditLog entries via Prisma with action, target, context, IP hash.",
+      "source_file": "src/lib/audit.ts"
+    },
+    {
+      "id": "lib-auth",
+      "type": "module",
+      "label": "Auth Module (src/lib/auth.ts + NextAuth route)",
+      "description": "NextAuth v4 configuration with CredentialsProvider (email+password). Includes role-based authorize callback, JWT encode/decode with role injection, session callback. Auth route at /api/auth/[...nextauth].",
+      "source_file": "src/lib/auth.ts"
+    },
+    {
+      "id": "middleware",
+      "type": "module",
+      "label": "Middleware (src/middleware.ts)",
+      "description": "Next.js middleware for staff route protection (/staff/*). Checks JWT token for role, enforces ROLE_HIERARCHY, verifies clinic is not soft-deleted or suspended. Issues 403/401/503 as appropriate.",
+      "source_file": "src/middleware.ts"
+    },
+    {
+      "id": "components-providers",
+      "type": "component",
+      "label": "Providers Wrapper (src/components/providers.tsx)",
+      "description": "Client component wrapping children in SessionProvider for NextAuth context.",
+      "source_file": "src/components/providers.tsx"
+    },
+    {
+      "id": "search-page",
+      "type": "component",
+      "label": "Search Page Component",
+      "description": "Search interface with filters (specialty, insurance, gender, availability, language) and ProviderCard results display. Uses shadcn/ui ToggleGroup, Slider, Badge, Sheet, Button.",
+      "source_file": "src/components/search/search-page.tsx"
+    },
+    {
+      "id": "booking-page",
+      "type": "component",
+      "label": "Booking Page Component",
+      "description": "Multi-step appointment booking wizard: provider selection, slot selection, patient info, review/confirm, confirmation. Uses SlotSummaryCard, ProgressIndicator. References PATIENT_TYPE and SLOT_MODALITY enums.",
+      "source_file": "src/components/booking/booking-page.tsx"
+    },
+    {
+      "id": "slot-summary-card",
+      "type": "component",
+      "label": "SlotSummaryCard",
+      "description": "Displays slot time, modality (in-person/video/phone), and price. Handles edge cases: past slots disabled, conflicting slot muted.",
+      "source_file": "src/components/booking/booking-page.tsx"
+    },
+    {
+      "id": "progress-indicator",
+      "type": "component",
+      "label": "ProgressIndicator",
+      "description": "Visual step indicator for the 5-step booking wizard. Highlights current step, marks completed steps, shows visited steps.",
+      "source_file": "src/components/booking/booking-page.tsx"
+    },
+    {
+      "id": "provider-card",
+      "type": "component",
+      "label": "ProviderCard",
+      "description": "Displays provider name, specialty, rating, review count, languages, next available slot. Clicking navigates to booking page.",
+      "source_file": "src/components/search/search-page.tsx"
+    },
+    {
+      "id": "sprint-1-worklog",
+      "type": "worklog",
+      "label": "Sprint 1 Work Logs",
+      "description": "AI agent task logs documenting Sprint 1 completion: project scaffolding, Prisma schema creation and migration, NextAuth v4 setup with JWT, middleware for staff route protection, and all lib utility modules (enums, crypto, cache, constants, audit).",
+      "properties": {
+        "tasks_completed": [
+          "Initialize Next.js + TS + Tailwind + shadcn/ui",
+          "Define Prisma schema (26 models) and run db push",
+          "Implement src/lib/enums.ts with role hierarchy",
+          "Implement src/lib/crypto.ts (bcrypt + SHA-256)",
+          "Implement src/lib/cache.ts (in-memory TTL cache)",
+          "Implement src/lib/constants.ts (audit actions, search params)",
+          "Implement src/lib/audit.ts (audit log writer)",
+          "Implement src/lib/auth.ts + NextAuth route (CredentialsProvider, JWT)",
+          "Implement src/middleware.ts (staff route protection)",
+          "Create src/components/providers.tsx"
+        ]
+      }
+    }
+  ],
+  "relationships": [
+    {"source": "lib-auth", "target": "lib-crypto", "label": "uses for password hashing and token verification"},
+    {"source": "lib-auth", "target": "prisma-schema", "label": "queries User model for credential validation"},
+    {"source": "lib-auth", "target": "middleware", "label": "supplies JWT encode/decode logic used by middleware"},
+    {"source": "lib-auth", "target": "components-providers", "label": "SessionProvider wraps app for auth context"},
+    {"source": "middleware", "target": "prisma-schema", "label": "checks Clinic status (deleted/suspended)"},
+    {"source": "middleware", "target": "lib-enums", "label": "uses ROLE_HIERARCHY for access control"},
+    {"source": "lib-audit", "target": "prisma-schema", "label": "writes AuditLog entries"},
+    {"source": "lib-audit", "target": "lib-constants", "label": "references AUDIT_ACTIONS constants"},
+    {"source": "lib-cache", "target": "prisma-schema", "label": "caches query results to reduce DB reads"},
+    {"source": "search-page", "target": "prisma-schema", "label": "queries Clinic, Provider, Specialty, etc."},
+    {"source": "search-page", "target": "provider-card", "label": "renders ProviderCard for each result"},
+    {"source": "booking-page", "target": "prisma-schema", "label": "queries Slot, Appointment, Provider, Patient"},
+    {"source": "booking-page", "target": "slot-summary-card", "label": "renders SlotSummaryCard for available slots"},
+    {"source": "booking-page", "target": "progress-indicator", "label": "shows current step in booking flow"},
+    {"source": "sprint-1-worklog", "target": "prisma-schema", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "lib-auth", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "middleware", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "lib-enums", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "lib-crypto", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "lib-cache", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "lib-constants", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "lib-audit", "label": "documents creation of"},
+    {"source": "sprint-1-worklog", "target": "components-providers", "label": "documents creation of"}
+  ]
+}

@@ -172,6 +172,19 @@ export function isValidStaffRole(value: string): value is StaffRole {
   return STAFF_ROLES.includes(value as StaffRole);
 }
 
+// ---- Reschedule Policies ----
+export const RESCHEDULE_POLICY = {
+  FORFEIT_ON_LATE_RESCHEDULE: "FORFEIT_ON_LATE_RESCHEDULE",
+  TRANSFER_ON_LATE_RESCHEDULE: "TRANSFER_ON_LATE_RESCHEDULE",
+  ALLOW_1_GRACE_TRANSFER: "ALLOW_1_GRACE_TRANSFER",
+} as const;
+
+export type ReschedulePolicy =
+  (typeof RESCHEDULE_POLICY)[keyof typeof RESCHEDULE_POLICY];
+
+export const RESCHEDULE_POLICIES: readonly ReschedulePolicy[] =
+  Object.values(RESCHEDULE_POLICY);
+
 // ---- Self-Pay Payment Types ----
 export const SELF_PAY_PAYMENT_TYPE = {
   FULL_UPFRONT: "FULL_UPFRONT",
@@ -244,6 +257,22 @@ export const WAITLIST_STATUS = {
 
 export type WaitlistStatus = (typeof WAITLIST_STATUS)[keyof typeof WAITLIST_STATUS];
 
+// ---- Intake Field Types ----
+export const INTAKE_FIELD_TYPE = {
+  TEXT: "text",
+  TEXTAREA: "textarea",
+  SELECT: "select",
+  CHECKBOX: "checkbox",
+} as const;
+
+export type IntakeFieldType = (typeof INTAKE_FIELD_TYPE)[keyof typeof INTAKE_FIELD_TYPE];
+
+export const INTAKE_FIELD_TYPES: readonly IntakeFieldType[] = Object.values(INTAKE_FIELD_TYPE);
+
+export function isValidIntakeFieldType(value: string): value is IntakeFieldType {
+  return INTAKE_FIELD_TYPES.includes(value as IntakeFieldType);
+}
+
 // ---- Payment Methods ----
 export const PAYMENT_METHOD = {
   STRIPE: "STRIPE",
@@ -252,3 +281,68 @@ export const PAYMENT_METHOD = {
 } as const;
 
 export type PaymentMethod = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
+
+// =============================================================================
+// Badge / Status-Pill Style Maps (used by <StatusBadge> component)
+// =============================================================================
+
+export const APP_STATUS_STYLES: Record<string, string> = {
+  BOOKED:     "bg-blue-100 text-blue-700 border-blue-200",
+  CHECKED_IN: "bg-amber-100 text-amber-700 border-amber-200",
+  COMPLETED:  "bg-emerald-100 text-emerald-700 border-emerald-200",
+  CANCELLED:  "bg-red-100 text-red-700 border-red-200",
+  NO_SHOW:    "bg-gray-100 text-gray-600 border-gray-200",
+  ARCHIVED:   "bg-muted text-muted-foreground border-muted",
+};
+
+export const APP_STATUS_LABELS: Record<string, string> = {
+  BOOKED:     "Booked",
+  CHECKED_IN: "Checked In",
+  COMPLETED:  "Completed",
+  CANCELLED:  "Cancelled",
+  NO_SHOW:    "No Show",
+  ARCHIVED:   "Archived",
+};
+
+export const SLOT_STATUS_STYLES: Record<string, string> = {
+  AVAILABLE:         "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+  LOCKED:            "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+  BOOKED:            "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+  BOOKED_EXTERNALLY: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
+  BLOCKED:           "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+  CLOSED:            "bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:border-gray-700",
+};
+
+export const SLOT_STATUS_LABELS: Record<string, string> = {
+  AVAILABLE:         "Available",
+  LOCKED:            "Locked",
+  BOOKED:            "Booked",
+  BOOKED_EXTERNALLY: "Ext. Booked",
+  BLOCKED:           "Blocked",
+  CLOSED:            "Closed",
+};
+
+export const CLINIC_STATUS_STYLES: Record<string, string> = {
+  PUBLISHED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300",
+  DRAFT:     "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/30 dark:text-gray-400",
+  PENDING:   "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300",
+  SUSPENDED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
+  ARCHIVED:  "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/30 dark:text-slate-400",
+};
+
+export const AUDIT_ACTION_STYLES: Record<string, string> = {
+  STAFF_LOGIN:           "bg-purple-100 text-purple-700",
+  STAFF_LOGOUT:          "bg-purple-100 text-purple-700",
+  BOOKING_CREATED:       "bg-emerald-100 text-emerald-700",
+  BOOKING_CANCELLED:     "bg-red-100 text-red-700",
+  BOOKING_CHECKED_IN:    "bg-amber-100 text-amber-700",
+  BOOKING_COMPLETED:     "bg-emerald-100 text-emerald-700",
+  BOOKING_RESCHEDULED:   "bg-blue-100 text-blue-700",
+  BOOKING_NO_SHOW:       "bg-gray-100 text-gray-600",
+  PROVIDER_CREATED:      "bg-sky-100 text-sky-700",
+  PROVIDER_UPDATED:      "bg-sky-100 text-sky-700",
+  CLINIC_UPDATED:        "bg-amber-100 text-amber-700",
+  SLOT_BLOCKED:          "bg-orange-100 text-orange-700",
+  SYSTEM_CONFIG_UPDATED: "bg-gray-100 text-gray-700",
+  TAXONOMY_PURGED:       "bg-amber-100 text-amber-700",
+};

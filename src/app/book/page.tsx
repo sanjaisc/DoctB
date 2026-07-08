@@ -176,7 +176,7 @@ function SlotSummaryCard({ slotData }: { slotData: SlotData }) {
     .join(", ");
 
   return (
-    <Card className="border-l-4 border-l-emerald-500 shadow-sm bg-white">
+    <Card className="border-l-4 border-l-emerald-500 shadow-sm bg-background">
       <CardContent className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="space-y-1.5 min-w-0">
@@ -759,7 +759,7 @@ export default function BookingPage() {
   // ===========================================================================
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <PublicNavbar showHome />
         <div className="flex-1 flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
@@ -776,7 +776,7 @@ export default function BookingPage() {
   // ===========================================================================
   if (error || !slotData) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <PublicNavbar showHome />
         <div className="flex-1 flex items-center justify-center py-20 px-4">
           <Card className="max-w-md w-full border-red-200 bg-red-50/30 shadow-sm">
@@ -792,12 +792,12 @@ export default function BookingPage() {
                 <Button
                   onClick={handleRetry}
                   variant="outline"
-                  className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                  className="border-red-200 text-red-600 hover:bg-red-50"
                 >
                   <RefreshCw className="size-4" />
                   Try Again
                 </Button>
-                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
                   <Link href="/">
                     <Search className="size-4" />
                     Back to Search
@@ -821,7 +821,7 @@ export default function BookingPage() {
     ];
 
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <ConfettiStyles />
         <PublicNavbar showHome />
 
@@ -973,7 +973,7 @@ export default function BookingPage() {
                 <Button
                   variant="outline"
                   onClick={() => setShowToken(!showToken)}
-                  className="w-full cursor-pointer justify-center"
+                  className="w-full justify-center"
                 >
                   {showToken ? (
                     <>
@@ -989,7 +989,7 @@ export default function BookingPage() {
                 </Button>
 
                 {showToken && rawToken && (
-                  <div className="rounded-lg border bg-white p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="rounded-lg border bg-background p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
                     <p className="text-xs text-muted-foreground break-all font-mono">
                       {window.location.origin}/manage/{rawToken}
                     </p>
@@ -997,7 +997,7 @@ export default function BookingPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleCopyToken}
-                      className="w-full cursor-pointer"
+                      className="w-full"
                     >
                       {copied ? (
                         <>
@@ -1059,7 +1059,7 @@ export default function BookingPage() {
 
           {/* Book Another */}
           <div className="flex justify-center pt-2 pb-4">
-            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <Link href="/">
                 <Search className="size-4" />
                 Book Another Appointment
@@ -1075,7 +1075,7 @@ export default function BookingPage() {
   // Steps 1-3 — Wizard with Progress Bar
   // ===========================================================================
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
       <PublicNavbar showHome />
 
       {/* ===== Slot Summary Card (visible on all steps) ===== */}
@@ -1084,7 +1084,7 @@ export default function BookingPage() {
       </div>
 
       {/* ===== Progress Indicator ===== */}
-      <div className="bg-white/80 border-b">
+      <div className="bg-background/80 border-b">
         <ProgressIndicator currentStep={step} />
       </div>
 
@@ -1135,14 +1135,14 @@ export default function BookingPage() {
                   >
                     <ToggleGroupItem
                       value="ADULT"
-                      className="flex-1 gap-1.5 cursor-pointer time-slot-ripple"
+                      className="flex-1 gap-1.5 time-slot-ripple"
                     >
                       <User className="size-3.5" />
                       <span className="text-xs sm:text-sm">Adult</span>
                     </ToggleGroupItem>
                     <ToggleGroupItem
                       value="PEDIATRIC"
-                      className="flex-1 gap-1.5 cursor-pointer time-slot-ripple"
+                      className="flex-1 gap-1.5 time-slot-ripple"
                     >
                       <Baby className="size-3.5" />
                       <span className="text-xs sm:text-sm">Pediatric</span>
@@ -1184,14 +1184,14 @@ export default function BookingPage() {
                         value={guardianRelation}
                         onValueChange={setGuardianRelation}
                       >
-                        <SelectTrigger id="guardianRelation" className="cursor-pointer">
+                        <SelectTrigger id="guardianRelation" className="">
                           <SelectValue placeholder="Select relationship" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Mother" className="cursor-pointer">Mother</SelectItem>
-                          <SelectItem value="Father" className="cursor-pointer">Father</SelectItem>
-                          <SelectItem value="Legal Guardian" className="cursor-pointer">Legal Guardian</SelectItem>
-                          <SelectItem value="Other" className="cursor-pointer">Other</SelectItem>
+                          <SelectItem value="Mother" className="">Mother</SelectItem>
+                          <SelectItem value="Father" className="">Father</SelectItem>
+                          <SelectItem value="Legal Guardian" className="">Legal Guardian</SelectItem>
+                          <SelectItem value="Other" className="">Other</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1224,12 +1224,12 @@ export default function BookingPage() {
                     value={selectedInsuranceId}
                     onValueChange={setSelectedInsuranceId}
                   >
-                    <SelectTrigger id="insurance" className="cursor-pointer">
+                    <SelectTrigger id="insurance" className="">
                       <SelectValue placeholder="Select insurance" />
                     </SelectTrigger>
                     <SelectContent>
                       {insurances.map((ins) => (
-                        <SelectItem key={ins.id} value={ins.id} className="cursor-pointer">
+                        <SelectItem key={ins.id} value={ins.id} className="">
                           {ins.name}
                           {ins.isDemo && (
                             <Badge variant="outline" className="ml-2 text-emerald-600 border-emerald-300 text-[10px] px-1.5 py-0">
@@ -1276,12 +1276,12 @@ export default function BookingPage() {
                         value={serviceId}
                         onValueChange={setSelectedServiceId}
                       >
-                        <SelectTrigger id="service" className="cursor-pointer">
+                        <SelectTrigger id="service" className="">
                           <SelectValue placeholder="Select service" />
                         </SelectTrigger>
                         <SelectContent>
                           {slotData.services.map((svc) => (
-                            <SelectItem key={svc.id} value={svc.id} className="cursor-pointer">
+                            <SelectItem key={svc.id} value={svc.id} className="">
                               {svc.name}
                             </SelectItem>
                           ))}
@@ -1632,7 +1632,7 @@ export default function BookingPage() {
                         asChild
                         variant="outline"
                         size="sm"
-                        className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                        className="border-red-200 text-red-600 hover:bg-red-50"
                       >
                         <Link href="/">
                           <Search className="size-3.5" />
@@ -1646,7 +1646,7 @@ export default function BookingPage() {
                         size="sm"
                         onClick={handleConfirm}
                         disabled={isSubmitting}
-                        className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                        className="border-red-200 text-red-600 hover:bg-red-50"
                       >
                         <RefreshCw className="size-3.5" />
                         Try Again
@@ -1661,7 +1661,7 @@ export default function BookingPage() {
             <Button
               onClick={handleConfirm}
               disabled={isSubmitting || !agreed}
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold cursor-pointer shadow-md shadow-emerald-200"
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold shadow-md shadow-emerald-200"
             >
               {isSubmitting ? (
                 <>
@@ -1681,13 +1681,13 @@ export default function BookingPage() {
 
       {/* ===== Navigation Footer (Steps 1-3 only) ===== */}
       {step >= 1 && step <= 3 && (
-        <div className="border-t bg-white/90 backdrop-blur-sm sticky bottom-0 mt-auto">
+        <div className="border-t bg-background/90 backdrop-blur-sm sticky bottom-0 mt-auto">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
             <Button
               variant="outline"
               onClick={goBack}
               disabled={step === 1}
-              className="cursor-pointer btn-icon-slide-back"
+              className="btn-icon-slide-back"
             >
               <ArrowLeft className="size-4 icon-slide-left" />
               Back
@@ -1700,7 +1700,7 @@ export default function BookingPage() {
                   (step === 1 && !validateStep1()) ||
                   (step === 2 && !validateStep2())
                 }
-                className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-sm btn-icon-slide-next"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm btn-icon-slide-next"
               >
                 Continue
                 <ArrowRight className="size-4 icon-slide-right" />

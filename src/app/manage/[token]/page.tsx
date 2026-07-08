@@ -269,7 +269,7 @@ export default function ManagePage() {
 
   if (pageState === "loading") {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <Header />
         <main className="flex-1 flex items-center justify-center p-4">
           <motion.div
@@ -290,7 +290,7 @@ export default function ManagePage() {
 
   if (pageState === "not_found" || pageState === "expired" || pageState === "cancelled" || pageState === "error" || pageState === "check_in_early") {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <Header />
         <main className="flex-1 flex items-center justify-center p-4">
           <motion.div
@@ -421,7 +421,7 @@ export default function ManagePage() {
     const paymentInfo = getPaymentDisplay();
 
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <Header />
 
         <main className="flex-1 py-6 px-4">
@@ -438,7 +438,7 @@ export default function ManagePage() {
                   <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-700 text-white overflow-hidden">
                     <CardContent className="pt-8 pb-8 px-8 text-center">
                       <motion.div
-                        className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-5"
+                        className="w-20 h-20 rounded-full bg-background/20 flex items-center justify-center mx-auto mb-5"
                         variants={checkmarkVariants}
                         initial="initial"
                         animate="animate"
@@ -471,7 +471,7 @@ export default function ManagePage() {
                         <div className="mt-5">
                           <Button
                             size="lg"
-                            className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold rounded-lg"
+                            className="bg-background text-emerald-700 hover:bg-emerald-50 font-semibold rounded-lg"
                             asChild
                           >
                             <a href={data.clinic.videoVisitLink} target="_blank" rel="noopener noreferrer">
@@ -695,7 +695,7 @@ export default function ManagePage() {
                 {/* ---- QR Code Section (BOOKED or CONFIRMED only) ---- */}
                 {(data.appointment.status === "BOOKED" || data.appointment.status === "CONFIRMED") && (
                   <motion.div {...fadeInUp}>
-                    <Card className="border-emerald-200 shadow-md bg-white">
+                    <Card className="border-emerald-200 shadow-md bg-background">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
                           <QrCode className="size-5 text-emerald-600" />
@@ -875,7 +875,7 @@ export default function ManagePage() {
 
 function Header() {
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
+    <header className="bg-background/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -898,7 +898,7 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="border-t border-border/50 bg-white/80 mt-auto">
+    <footer className="border-t border-border/50 bg-background/80 mt-auto">
       <div className="max-w-4xl mx-auto px-4 py-4 text-center">
         <p className="text-xs text-muted-foreground">
           Powered by <span className="font-semibold text-foreground">DoctA</span> &middot; Patient Self-Service Portal

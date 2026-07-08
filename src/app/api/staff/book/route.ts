@@ -305,6 +305,23 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Validate slot date is not within a clinic closure
+      const slotDate = slot.startTime.toISOString().slice(0, 10);
+      const closureExists = await db.clinicClosure.findFirst({
+        where: {
+          clinicId: slot.clinicId,
+          startDate: { lte: new Date(slotDate + "T23:59:59.999Z") },
+          endDate: { gte: new Date(slotDate + "T00:00:00.000Z") },
+        },
+      });
+      if (closureExists) {
+        throw new ManualBookingError(
+          "CLOSURE_PERIOD",
+          "Cannot book during a closure period",
+          409
+        );
+      }
+
       // b. Validate the service belongs to this provider
       const providerService = slot.provider.providerServices.find(
         (ps) => ps.serviceId === data.serviceId

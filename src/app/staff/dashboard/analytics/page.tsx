@@ -14,11 +14,21 @@ import {
   Users,
   Activity,
   CheckCircle2,
+  DollarSign,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
 import {
   AreaChart,
@@ -34,11 +44,14 @@ import {
   Legend,
 } from "recharts";
 import type { DoctASessionUser } from "@/lib/auth";
+import { PageHeader } from "@/components/staff/PageHeader";
+import { StatCard } from "@/components/staff/stat-card";
+import { EmptyState } from "@/components/staff/empty-state";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-type Period = "7d" | "30d" | "90d";
+type Period = "7d" | "30d" | "90d" | "custom";
 
 interface DailyTrend {
   date: string;
@@ -72,12 +85,20 @@ interface SummaryStats {
   avgDaily: number;
 }
 
+interface FinancialMetrics {
+  totalDepositCents: number;
+  totalSelfPayCents: number;
+  totalPotentialRevenueCents: number;
+  completedRevenueCents: number;
+}
+
 interface AnalyticsData {
   period: { start: string; end: string };
   dailyTrends: DailyTrend[];
   modality: ModalityData;
   providerPerformance: ProviderPerf[];
   summary: SummaryStats;
+  financial: FinancialMetrics;
   busiestDay: string;
   busiestHour: string;
 }
@@ -93,49 +114,6 @@ const COLORS = {
   inPerson: "#10b981",
   video: "#0ea5e9",
 };
-
-// ---------------------------------------------------------------------------
-// Stat Card (same pattern as dashboard)
-// ---------------------------------------------------------------------------
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  gradient,
-  iconBg,
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  gradient: string;
-  iconBg: string;
-}) {
-  return (
-    <Card className="relative overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
-      <div className={`absolute inset-x-0 top-0 h-1 ${gradient}`} />
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight text-foreground">
-              {value}
-            </p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
-            )}
-          </div>
-          <div
-            className={`size-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}
-          >
-            <Icon className="size-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Custom Tooltip for Area Chart
@@ -160,7 +138,7 @@ function AreaTooltipContent({
   };
 
   return (
-    <div className="rounded-xl border border-border/60 bg-white p-3 shadow-lg text-xs space-y-1.5">
+    <div className="rounded-xl border border-border/60 bg-background p-3 shadow-lg text-xs space-y-1.5">
       <p className="font-semibold text-foreground">
         {label ? format(parseISO(label), "MMM d, yyyy") : ""}
       </p>
@@ -226,14 +204,17 @@ function PieCenterLabel({
 function PeriodSelector({
   value,
   onChange,
+  onCustomToggle,
 }: {
   value: Period;
   onChange: (p: Period) => void;
+  onCustomToggle: () => void;
 }) {
   const options: { label: string; value: Period }[] = [
     { label: "7 Days", value: "7d" },
     { label: "30 Days", value: "30d" },
     { label: "90 Days", value: "90d" },
+    { label: "Custom", value: "custom" },
   ];
 
   return (
@@ -241,11 +222,11 @@ function PeriodSelector({
       {options.map((opt) => (
         <button
           key={opt.value}
-          onClick={() => onChange(opt.value)}
+          onClick={() => opt.value === "custom" ? onCustomToggle() : onChange(opt.value)}
           className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer ${
             value === opt.value
-              ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
-              : "text-muted-foreground hover:text-foreground hover:bg-white/60"
+               ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 dark:bg-emerald-500 dark:shadow-emerald-500/25"
+              : "text-muted-foreground hover:text-foreground hover:bg-background/60"
           }`}
         >
           {opt.label}
@@ -266,13 +247,20 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customDateFrom, setCustomDateFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [customDateTo, setCustomDateTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
 
-  const fetchAnalytics = useCallback(async (p: Period) => {
+  const fetchAnalytics = useCallback(async (p: Period, from?: string, to?: string) => {
     if (!user?.clinicId) return;
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ period: p });
+      if (p === "custom" && from && to) {
+        params.set("dateFrom", from);
+        params.set("dateTo", to);
+      }
       if (user.role === "SYSTEM_MANAGER" && user.clinicId) {
         params.set("clinicId", user.clinicId);
       }
@@ -287,8 +275,14 @@ export default function AnalyticsPage() {
     }
   }, [user?.clinicId, user?.role]);
 
+  const handleCustomRangeApply = () => {
+    setPeriod("custom");
+    setShowCustomPicker(false);
+    fetchAnalytics("custom", customDateFrom, customDateTo);
+  };
+
   useEffect(() => {
-    if (status === "authenticated") fetchAnalytics(period);
+    if (status === "authenticated" && period !== "custom") fetchAnalytics(period);
   }, [status, period, fetchAnalytics]);
 
   // Period range label
@@ -335,17 +329,17 @@ export default function AnalyticsPage() {
   // -------------------------------------
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50/30">
+      <Card className="border-red-200 bg-red-50/30 dark:border-red-800 dark:bg-red-950/20">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <AlertTriangle className="size-8 text-red-400 mb-3" />
-          <p className="text-sm font-medium text-red-800">
+          <p className="text-sm font-medium text-red-800 dark:text-red-300">
             Failed to load analytics
           </p>
-          <p className="text-xs text-red-600 mt-1">{error}</p>
+          <p className="text-xs text-red-600 mt-1 dark:text-red-300">{error}</p>
           <Button
             variant="outline"
             size="sm"
-            className="mt-4 cursor-pointer"
+            className="mt-4"
             onClick={() => fetchAnalytics(period)}
           >
             <RefreshCw className="size-3.5 mr-2" />
@@ -360,19 +354,43 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-300">
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Analytics
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+      <PageHeader
+        title="Analytics"
+        description={
+          <span className="flex items-center gap-2">
             <BarChart3 className="size-3.5" />
             {dateRange}
-          </p>
+          </span>
+        }
+      >
+        <div className="flex items-center gap-2">
+          <PeriodSelector value={period} onChange={setPeriod} onCustomToggle={() => setShowCustomPicker(!showCustomPicker)} />
+          {showCustomPicker && (
+            <div className="flex items-center gap-1.5 bg-muted/60 rounded-xl p-1.5">
+              <Input
+                type="date"
+                value={customDateFrom}
+                onChange={(e) => setCustomDateFrom(e.target.value)}
+                className="h-8 w-36 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">—</span>
+              <Input
+                type="date"
+                value={customDateTo}
+                onChange={(e) => setCustomDateTo(e.target.value)}
+                className="h-8 w-36 text-xs"
+              />
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                onClick={handleCustomRangeApply}
+              >
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
-        <PeriodSelector value={period} onChange={setPeriod} />
-      </div>
+      </PageHeader>
 
       {/* Summary stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -409,6 +427,44 @@ export default function AnalyticsPage() {
           iconBg="bg-amber-100 text-amber-600"
         />
       </div>
+
+      {/* Financial Summary */}
+      {data.financial && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Potential Revenue"
+            value={`$${(data.financial.totalPotentialRevenueCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            subtitle="Deposits + self-pay total"
+            icon={DollarSign}
+            gradient="bg-gradient-to-r from-blue-500 to-indigo-500"
+            iconBg="bg-blue-100 text-blue-600"
+          />
+          <StatCard
+            title="Completed Revenue"
+            value={`$${(data.financial.completedRevenueCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            subtitle="Revenue from completed appts"
+            icon={DollarSign}
+            gradient="bg-gradient-to-r from-emerald-500 to-teal-500"
+            iconBg="bg-emerald-100 text-emerald-600"
+          />
+          <StatCard
+            title="Total Deposits"
+            value={`$${(data.financial.totalDepositCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            subtitle="Collected deposits"
+            icon={DollarSign}
+            gradient="bg-gradient-to-r from-amber-500 to-orange-500"
+            iconBg="bg-amber-100 text-amber-600"
+          />
+          <StatCard
+            title="Self-Pay Total"
+            value={`$${(data.financial.totalSelfPayCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            subtitle="Self-pay amounts"
+            icon={DollarSign}
+            gradient="bg-gradient-to-r from-purple-500 to-violet-500"
+            iconBg="bg-purple-100 text-purple-600"
+          />
+        </div>
+      )}
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -452,17 +508,17 @@ export default function AnalyticsPage() {
                       <stop offset="95%" stopColor={COLORS.noShow} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
                   <XAxis
                     dataKey="date"
                     tickFormatter={(v: string) => format(parseISO(v), "MMM dd")}
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
                     allowDecimals={false}
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -556,7 +612,7 @@ export default function AnalyticsPage() {
                     <Tooltip
                       contentStyle={{
                         borderRadius: "12px",
-                        border: "1px solid hsl(var(--border))",
+                        border: "1px solid var(--border)",
                         fontSize: "12px",
                         boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                       }}
@@ -641,49 +697,27 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent className="px-4 pb-4">
           {data.providerPerformance.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
-                <Users className="size-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-foreground">
-                No provider data
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Appointments in this period will appear here.
-              </p>
-            </div>
+            <EmptyState icon={Users} title="No provider data" description="Appointments in this period will appear here." />
           ) : (
-            <div className="overflow-x-auto -mx-4">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/60">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Provider
-                    </th>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Completed
-                    </th>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Cancelled
-                    </th>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      No-Show Rate
-                    </th>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Rating
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="-mx-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border/60">
+                    <TableHead className="py-3 px-4 text-xs font-semibold uppercase tracking-wider">Provider</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-xs font-semibold uppercase tracking-wider">Total</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-xs font-semibold uppercase tracking-wider">Completed</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-xs font-semibold uppercase tracking-wider">Cancelled</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-xs font-semibold uppercase tracking-wider">No-Show Rate</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-xs font-semibold uppercase tracking-wider">Rating</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.providerPerformance.map((provider, idx) => (
-                    <tr
+                    <TableRow
                       key={idx}
                       className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
                     >
-                      <td className="py-3 px-4">
+                      <TableCell className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
                           <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
                             <Users className="size-3.5 text-emerald-700" />
@@ -692,42 +726,42 @@ export default function AnalyticsPage() {
                             {provider.name}
                           </span>
                         </div>
-                      </td>
-                      <td className="text-center py-3 px-3 font-semibold text-foreground">
+                      </TableCell>
+                      <TableCell className="text-center py-3 px-3 font-semibold text-foreground">
                         {provider.total}
-                      </td>
-                      <td className="text-center py-3 px-3">
+                      </TableCell>
+                      <TableCell className="text-center py-3 px-3">
                         <Badge
                           variant="outline"
-                          className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
+                          className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800"
                         >
                           <CheckCircle2 className="size-3 mr-1" />
                           {provider.completed}
                         </Badge>
-                      </td>
-                      <td className="text-center py-3 px-3">
+                      </TableCell>
+                      <TableCell className="text-center py-3 px-3">
                         <Badge
                           variant="outline"
-                          className="bg-red-50 text-red-600 border-red-200 text-xs"
+                          className="bg-red-50 text-red-600 border-red-200 text-xs dark:bg-red-950/30 dark:text-red-300 dark:border-red-800"
                         >
                           <XCircle className="size-3 mr-1" />
                           {provider.cancelled}
                         </Badge>
-                      </td>
-                      <td className="text-center py-3 px-3">
+                      </TableCell>
+                      <TableCell className="text-center py-3 px-3">
                         <span
                           className={`text-xs font-semibold ${
                             provider.noShowRate >= 20
-                              ? "text-red-600"
-                              : provider.noShowRate >= 10
-                                ? "text-amber-600"
-                                : "text-emerald-600"
+      ? "text-red-600 dark:text-red-400"
+      : provider.noShowRate >= 10
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-emerald-600 dark:text-emerald-400"
                           }`}
                         >
                           {provider.noShowRate}%
                         </span>
-                      </td>
-                      <td className="text-center py-3 px-3">
+                      </TableCell>
+                      <TableCell className="text-center py-3 px-3">
                         {provider.avgRating > 0 ? (
                           <div className="flex items-center justify-center gap-1">
                             <Star className="size-3.5 fill-amber-400 text-amber-400" />
@@ -738,11 +772,11 @@ export default function AnalyticsPage() {
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

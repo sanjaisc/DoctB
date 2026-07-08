@@ -11,7 +11,7 @@ import {
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-emerald-50/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-emerald-50/30">
       {/* Decorative background elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute -top-24 -left-24 size-72 rounded-full bg-emerald-100/40 blur-3xl" />

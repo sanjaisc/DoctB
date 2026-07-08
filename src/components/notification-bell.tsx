@@ -181,7 +181,7 @@ export function NotificationBell() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative cursor-pointer"
+          className="relative"
         >
           <Bell className="size-4.5 text-muted-foreground" />
           {displayCount > 0 && (

@@ -789,14 +789,14 @@ export default function ManualBookPage() {
           >
             <ToggleGroupItem
               value="ADULT"
-              className="flex items-center gap-2 px-4 py-2.5 data-[state=on]:bg-emerald-100 data-[state=on]:text-emerald-700 cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 data-[state=on]:bg-emerald-100 data-[state=on]:text-emerald-700"
             >
               <User className="size-4" />
               Adult
             </ToggleGroupItem>
             <ToggleGroupItem
               value="PEDIATRIC"
-              className="flex items-center gap-2 px-4 py-2.5 data-[state=on]:bg-emerald-100 data-[state=on]:text-emerald-700 cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 data-[state=on]:bg-emerald-100 data-[state=on]:text-emerald-700"
             >
               <Baby className="size-4" />
               Pediatric
@@ -1325,7 +1325,7 @@ export default function ManualBookPage() {
             </p>
 
             {/* Token display */}
-            <div className="bg-white rounded-lg border p-3 space-y-2">
+            <div className="bg-background rounded-lg border p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">
                   Management URL
@@ -1388,7 +1388,7 @@ export default function ManualBookPage() {
               });
               setSlots([]);
             }}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 cursor-pointer"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200"
           >
             <CalendarPlus className="size-4 mr-2" />
             Book Another Appointment
@@ -1454,7 +1454,7 @@ export default function ManualBookPage() {
             variant="outline"
             onClick={handleBack}
             disabled={step === 1}
-            className="cursor-pointer rounded-xl"
+            className="rounded-xl"
           >
             <ArrowLeft className="size-4 mr-2" />
             Back
@@ -1463,7 +1463,7 @@ export default function ManualBookPage() {
           {step < 4 ? (
             <Button
               onClick={handleNext}
-              className="bg-emerald-600 hover:bg-emerald-700 shadow-sm cursor-pointer rounded-xl"
+              className="bg-emerald-600 hover:bg-emerald-700 shadow-sm rounded-xl"
             >
               Continue
               <ArrowRight className="size-4 ml-2" />
@@ -1472,7 +1472,7 @@ export default function ManualBookPage() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 cursor-pointer rounded-xl"
+              className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 rounded-xl"
             >
               {submitting ? (
                 <>

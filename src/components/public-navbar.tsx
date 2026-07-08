@@ -18,7 +18,7 @@ interface PublicNavbarProps {
  */
 export function PublicNavbar({ showHome = false }: PublicNavbarProps) {
   return (
-    <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-sm">
+    <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur-sm">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
@@ -28,7 +28,7 @@ export function PublicNavbar({ showHome = false }: PublicNavbarProps) {
         <div className="flex items-center gap-2">
           {showHome && (
             <Link href="/">
-              <Button variant="ghost" size="sm" className="cursor-pointer">
+              <Button variant="ghost" size="sm" className="">
                 <Home className="size-4 mr-1.5" />
                 Home
               </Button>
@@ -36,7 +36,7 @@ export function PublicNavbar({ showHome = false }: PublicNavbarProps) {
           )}
           <ThemeToggle />
           <Link href="/staff/login">
-            <Button variant="outline" size="sm" className="cursor-pointer">
+            <Button variant="outline" size="sm" className="">
               Staff Login
             </Button>
           </Link>

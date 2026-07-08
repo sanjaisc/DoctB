@@ -19,8 +19,8 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-emerald-50/30">
-      <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur-sm">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-emerald-50/30">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2 text-foreground">
             <svg className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

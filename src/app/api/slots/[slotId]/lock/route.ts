@@ -75,6 +75,19 @@ export async function POST(
           return null; // Signal: past slot
         }
 
+        // 2b. Verify slot date is not within a clinic closure
+        const slotDate = slot.startTime.toISOString().slice(0, 10);
+        const closureExists = await tx.clinicClosure.findFirst({
+          where: {
+            clinicId: slot.clinicId,
+            startDate: { lte: new Date(slotDate + "T23:59:59.999Z") },
+            endDate: { gte: new Date(slotDate + "T00:00:00.000Z") },
+          },
+        });
+        if (closureExists) {
+          return null; // Signal: within closure period
+        }
+
         // 3. Create SlotLock — the @@unique([slotId]) constraint is the
         //    race-condition catcher. If two requests hit this simultaneously,
         //    the second one will throw P2002.

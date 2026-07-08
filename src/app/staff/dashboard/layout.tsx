@@ -18,6 +18,10 @@ import {
   BarChart3,
   Activity,
   Shield,
+  Briefcase,
+  Mail,
+  CalendarX,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -77,6 +81,42 @@ const NAV_ITEMS = [
     href: "/staff/dashboard/analytics",
     label: "Analytics",
     icon: BarChart3,
+    minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/clinic",
+    label: "Clinic Profile",
+    icon: Building2,
+    minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/providers",
+    label: "Providers",
+    icon: Users,
+    minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/services",
+    label: "Services",
+    icon: Briefcase,
+    minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/communications",
+    label: "Communications",
+    icon: Mail,
+    minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/closures",
+    label: "Closures",
+    icon: CalendarX,
+    minRole: STAFF_ROLE.CLINIC_ADMIN,
+  },
+  {
+    href: "/staff/dashboard/staff",
+    label: "Staff",
+    icon: UserPlus,
     minRole: STAFF_ROLE.CLINIC_ADMIN,
   },
   {
@@ -151,7 +191,7 @@ export default function StaffDashboardLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-10 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+          <div className="size-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
@@ -333,7 +373,7 @@ export default function StaffDashboardLayout({
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden cursor-pointer"
+              className="lg:hidden"
               onClick={() => setMobileOpen(true)}
             >
               <Menu className="size-5" />

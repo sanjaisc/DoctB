@@ -54,14 +54,14 @@ async function buildAdminData() {
     staffUsers,
     lastLogins,
   ] = await Promise.all([
-    // 1. Published clinics with provider count and appointment counts
+    // 1. All clinics with provider count and appointment counts
     db.clinic.findMany({
-      where: { status: "PUBLISHED" },
       select: {
         id: true,
         name: true,
         slug: true,
         city: true,
+        status: true,
         providers: {
           where: { status: "ACTIVE" },
           select: { id: true, rating: true },
@@ -147,6 +147,7 @@ async function buildAdminData() {
       name: clinic.name,
       slug: clinic.slug,
       city: clinic.city,
+      status: clinic.status,
       providerCount,
       todayAppts,
       weekAppts,

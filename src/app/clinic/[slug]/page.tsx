@@ -227,7 +227,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
   // Render
   // ---------------------------------------------------------------------------
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-emerald-50/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-emerald-50/30">
       <PublicNavbar showHome />
 
       {/* ===== Main Content ===== */}
@@ -255,7 +255,7 @@ export default async function ClinicDetailPage({ params }: PageProps) {
           {/* ===== Clinic Header Card ===== */}
           <Card className="overflow-hidden shadow-md">
             {/* Subtle gradient overlay on header */}
-            <div className="absolute inset-0 h-24 bg-gradient-to-b from-white/30 to-transparent pointer-events-none z-10 rounded-t-lg" />
+            <div className="absolute inset-0 h-24 bg-gradient-to-b from-background/30 to-transparent pointer-events-none z-10 rounded-t-lg" />
             {/* Gradient strip */}
             <div className="h-2 rounded-t-lg bg-gradient-to-r from-emerald-400 to-teal-500 bg-[length:200%_200%] bg-gradient-animated relative" />
             <CardContent className="p-6 space-y-4">

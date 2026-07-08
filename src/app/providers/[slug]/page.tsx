@@ -249,7 +249,7 @@ export default async function ProviderProfilePage({ params }: PageProps) {
   // Render
   // ---------------------------------------------------------------------------
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-emerald-50/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-emerald-50/30">
       <PublicNavbar showHome />
 
       {/* ===== Main Content ===== */}
@@ -594,7 +594,7 @@ export default async function ProviderProfilePage({ params }: PageProps) {
               >
                 <Button
                   variant="outline"
-                  className="w-full mt-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 cursor-pointer"
+                  className="w-full mt-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400"
                 >
                   <MapPin className="size-4 mr-2" />
                   View on Google Maps

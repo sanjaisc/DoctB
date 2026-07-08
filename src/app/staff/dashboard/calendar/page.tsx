@@ -116,34 +116,34 @@ function SlotStatusBadge({ status }: { status: string }) {
   switch (status) {
     case APPOINTMENT_STATUS.BOOKED:
       return (
-        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 text-[10px] px-1.5 py-0">
           <CheckCircle2 className="size-3 mr-1" />
           Booked
         </Badge>
       );
     case APPOINTMENT_STATUS.CHECKED_IN:
       return (
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-[10px] px-1.5 py-0">
           <Clock className="size-3 mr-1" />
           Checked In
         </Badge>
       );
     case APPOINTMENT_STATUS.COMPLETED:
       return (
-        <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border text-[10px] px-1.5 py-0">
           Completed
         </Badge>
       );
     case APPOINTMENT_STATUS.CANCELLED:
       return (
-        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 text-[10px] px-1.5 py-0">
           <XCircle className="size-3 mr-1" />
           Cancelled
         </Badge>
       );
     case APPOINTMENT_STATUS.NO_SHOW:
       return (
-        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 text-[10px] px-1.5 py-0">
           <UserX className="size-3 mr-1" />
           No Show
         </Badge>
@@ -156,14 +156,14 @@ function SlotStatusBadge({ status }: { status: string }) {
 function ModalityBadge({ modality }: { modality: string }) {
   if (modality === SLOT_MODALITY.VIDEO) {
     return (
-      <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-[10px] px-1.5 py-0">
+      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-[10px] px-1.5 py-0">
         <Video className="size-3 mr-1" />
         Video
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] px-1.5 py-0">
+    <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-[10px] px-1.5 py-0">
       <Building2 className="size-3 mr-1" />
       In-Clinic
     </Badge>
@@ -195,14 +195,14 @@ function SlotCard({ slot }: { slot: SlotInfo }) {
           "border rounded-lg shadow-sm transition-all duration-150 hover:shadow-md",
           "border-l-4",
           slot.appointment.status === APPOINTMENT_STATUS.CHECKED_IN
-            ? "border-l-blue-500 bg-blue-50/40"
+            ? "border-l-blue-500 dark:border-l-blue-400 bg-blue-50/40 dark:bg-blue-950/20"
             : slot.appointment.status === APPOINTMENT_STATUS.COMPLETED
-              ? "border-l-gray-400 bg-gray-50/40"
+              ? "border-l-border bg-muted/50"
               : slot.appointment.status === APPOINTMENT_STATUS.CANCELLED
-                ? "border-l-red-400 bg-red-50/30"
+                ? "border-l-red-400 dark:border-l-red-600 bg-red-50/30 dark:bg-red-950/20"
                 : slot.appointment.status === APPOINTMENT_STATUS.NO_SHOW
-                  ? "border-l-amber-400 bg-amber-50/30"
-                  : "border-l-emerald-500 bg-white"
+                  ? "border-l-amber-400 dark:border-l-amber-600 bg-amber-50/30 dark:bg-amber-950/20"
+                  : "border-l-emerald-500 dark:border-l-emerald-400 bg-background"
         )}
         style={{ marginTop: minuteOffset > 0 ? `${(minuteOffset / 60) * 100}%` : 0 }}
       >
@@ -241,16 +241,16 @@ function SlotCard({ slot }: { slot: SlotInfo }) {
   if (isAvailable) {
     return (
       <Card
-        className="border border-emerald-200 bg-emerald-50/60 rounded-lg shadow-sm hover:shadow-md hover:-translate-y-px hover:bg-emerald-50 transition-all duration-150 cursor-pointer border-l-4 border-l-emerald-400"
+        className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-lg shadow-sm hover:shadow-md hover:-translate-y-px hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all duration-150 cursor-pointer border-l-4 border-l-emerald-400 dark:border-l-emerald-600"
         style={{ marginTop: minuteOffset > 0 ? `${(minuteOffset / 60) * 100}%` : 0 }}
       >
         <CardContent className="p-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-emerald-700">
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
               {startTime} – {endTime}
             </span>
           </div>
-          <span className="text-[10px] font-medium text-emerald-600 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100/80 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
             Available
           </span>
         </CardContent>
@@ -262,13 +262,13 @@ function SlotCard({ slot }: { slot: SlotInfo }) {
   if (isBlocked) {
     return (
       <div
-        className="rounded-lg bg-gray-100 border border-gray-200 p-2.5 flex items-center justify-between"
+        className="rounded-lg bg-muted border border-border p-2.5 flex items-center justify-between"
         style={{ marginTop: minuteOffset > 0 ? `${(minuteOffset / 60) * 100}%` : 0 }}
       >
-        <span className="text-xs text-gray-400 line-through">
+        <span className="text-xs text-muted-foreground line-through">
           {startTime} – {endTime}
         </span>
-        <Badge variant="outline" className="bg-gray-100 text-gray-400 border-gray-200 text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] px-1.5 py-0">
           {slot.status === SLOT_STATUS.CLOSED ? "Closed" : "Blocked"}
         </Badge>
       </div>
@@ -279,13 +279,13 @@ function SlotCard({ slot }: { slot: SlotInfo }) {
   if (isLocked) {
     return (
       <div
-        className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 flex items-center justify-between"
+        className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2.5 flex items-center justify-between"
         style={{ marginTop: minuteOffset > 0 ? `${(minuteOffset / 60) * 100}%` : 0 }}
       >
-        <span className="text-xs text-amber-600">
+        <span className="text-xs text-amber-600 dark:text-amber-400">
           {startTime} – {endTime}
         </span>
-        <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 text-[10px] px-1.5 py-0">
           <Clock className="size-3 mr-1" />
           Locked
         </Badge>
@@ -297,14 +297,14 @@ function SlotCard({ slot }: { slot: SlotInfo }) {
   if (slot.status === SLOT_STATUS.BOOKED_EXTERNALLY) {
     return (
       <Card
-        className="border border-purple-200 bg-purple-50/40 rounded-lg shadow-sm border-l-4 border-l-purple-400"
+        className="border border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20 rounded-lg shadow-sm border-l-4 border-l-purple-400 dark:border-l-purple-600"
         style={{ marginTop: minuteOffset > 0 ? `${(minuteOffset / 60) * 100}%` : 0 }}
       >
         <CardContent className="p-2.5 flex items-center justify-between">
-          <span className="text-xs font-medium text-purple-700">
+          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
             {startTime} – {endTime}
           </span>
-          <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 text-[10px] px-1.5 py-0">
+          <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 text-[10px] px-1.5 py-0">
             External
           </Badge>
         </CardContent>
@@ -376,7 +376,7 @@ function CalendarSkeleton() {
       </div>
 
       {/* Grid skeleton */}
-      <div className="rounded-xl border bg-white p-4 space-y-0">
+      <div className="rounded-xl border bg-background p-4 space-y-0">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="flex items-start gap-4 h-18 py-1">
             <Skeleton className="h-5 w-14 shrink-0 mt-1" />
@@ -460,17 +460,17 @@ export default function CalendarPage() {
   if (error && !data) {
     return (
       <div className="max-w-5xl mx-auto">
-        <Card className="border-red-200 bg-red-50/30">
+        <Card className="border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-950/20">
           <CardContent className="p-6 flex flex-col items-center gap-3 text-center">
-            <div className="size-12 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertCircle className="size-6 text-red-600" />
+            <div className="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <AlertCircle className="size-6 text-red-600 dark:text-red-400" />
             </div>
-            <p className="text-sm font-medium text-red-700">{error}</p>
+            <p className="text-sm font-medium text-red-700 dark:text-red-300">{error}</p>
             <Button
               variant="outline"
               size="sm"
               onClick={() => fetchCalendar(selectedDate, providerId)}
-              className="cursor-pointer"
+              className=""
             >
               Try Again
             </Button>
@@ -493,7 +493,7 @@ export default function CalendarPage() {
           <Button
             variant="outline"
             size="icon"
-            className="size-9 cursor-pointer hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+            className="size-9 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-800"
             onClick={goToPrevDay}
           >
             <ChevronLeft className="size-4" />
@@ -505,10 +505,10 @@ export default function CalendarPage() {
                 variant="outline"
                 className={cn(
                   "h-9 gap-2 font-semibold min-w-[220px] justify-start text-left cursor-pointer",
-                  "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+                  "hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-800"
                 )}
               >
-                <CalendarIcon className="size-4 text-emerald-600" />
+                <CalendarIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
                 {formattedDate}
               </Button>
             </PopoverTrigger>
@@ -530,7 +530,7 @@ export default function CalendarPage() {
           <Button
             variant="outline"
             size="icon"
-            className="size-9 cursor-pointer hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+            className="size-9 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-800"
             onClick={goToNextDay}
           >
             <ChevronRight className="size-4" />
@@ -541,7 +541,7 @@ export default function CalendarPage() {
               variant="outline"
               size="sm"
               onClick={goToToday}
-              className="cursor-pointer hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-emerald-700 border-emerald-200"
+              className="hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-800 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
             >
               Today
             </Button>
@@ -553,7 +553,7 @@ export default function CalendarPage() {
           <div className="flex items-center gap-2 sm:ml-auto">
             <Users className="size-4 text-muted-foreground shrink-0" />
             <Select value={providerId} onValueChange={setProviderId}>
-              <SelectTrigger className="w-[200px] cursor-pointer hover:border-emerald-300">
+              <SelectTrigger className="w-[200px] hover:border-emerald-300 dark:hover:border-emerald-700">
                 <SelectValue placeholder="All Providers" />
               </SelectTrigger>
               <SelectContent>
@@ -571,51 +571,51 @@ export default function CalendarPage() {
 
       {/* ---- Summary Cards ---- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50 to-white shadow-sm">
+        <Card className="border-emerald-100 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50 dark:from-emerald-950 to-background shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <div className="size-7 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <div className="size-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <span className="text-xs text-muted-foreground font-medium">Booked</span>
             </div>
-            <p className="text-2xl font-bold text-emerald-700">{summary.booked}</p>
+            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{summary.booked}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-sky-100 bg-gradient-to-br from-sky-50 to-white shadow-sm">
+        <Card className="border-sky-100 dark:border-sky-900/50 bg-gradient-to-br from-sky-50 dark:from-sky-950 to-background shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <div className="size-7 rounded-lg bg-sky-100 flex items-center justify-center">
-                <Clock className="size-3.5 text-sky-600" />
+              <div className="size-7 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                <Clock className="size-3.5 text-sky-600 dark:text-sky-400" />
               </div>
               <span className="text-xs text-muted-foreground font-medium">Checked In</span>
             </div>
-            <p className="text-2xl font-bold text-sky-700">{summary.checkedIn}</p>
+            <p className="text-2xl font-bold text-sky-700 dark:text-sky-300">{summary.checkedIn}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-amber-100 bg-gradient-to-br from-amber-50 to-white shadow-sm">
+        <Card className="border-amber-100 dark:border-amber-900/50 bg-gradient-to-br from-amber-50 dark:from-amber-950 to-background shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <div className="size-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                <CalendarIcon className="size-3.5 text-amber-600" />
+              <div className="size-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <CalendarIcon className="size-3.5 text-amber-600 dark:text-amber-400" />
               </div>
               <span className="text-xs text-muted-foreground font-medium">Available</span>
             </div>
-            <p className="text-2xl font-bold text-amber-700">{summary.available}</p>
+            <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{summary.available}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200 bg-gradient-to-br from-gray-50 to-white shadow-sm">
+        <Card className="border-border bg-gradient-to-br from-muted/50 to-background shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <div className="size-7 rounded-lg bg-gray-100 flex items-center justify-center">
-                <XCircle className="size-3.5 text-gray-500" />
+              <div className="size-7 rounded-lg bg-muted flex items-center justify-center">
+                <XCircle className="size-3.5 text-muted-foreground" />
               </div>
               <span className="text-xs text-muted-foreground font-medium">Blocked</span>
             </div>
-            <p className="text-2xl font-bold text-gray-600">{summary.blocked}</p>
+            <p className="text-2xl font-bold text-muted-foreground">{summary.blocked}</p>
           </CardContent>
         </Card>
       </div>
@@ -639,7 +639,7 @@ export default function CalendarPage() {
                   key={hour}
                   className={cn(
                     "flex min-h-18",
-                    idx % 2 === 0 ? "bg-white" : "bg-muted/30",
+                    idx % 2 === 0 ? "bg-background" : "bg-muted/30",
                     "border-b border-border/40 last:border-b-0"
                   )}
                 >
@@ -677,7 +677,7 @@ export default function CalendarPage() {
                   7 pm
                 </span>
               </div>
-              <div className="flex-1 border-l-2 border-dashed border-emerald-200 ml-1" />
+              <div className="flex-1 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 ml-1" />
             </div>
           </div>
         </CardContent>
@@ -686,23 +686,23 @@ export default function CalendarPage() {
       {/* ---- Footer info ---- */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-muted-foreground pb-2">
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-emerald-200 border border-emerald-300" />
+          <div className="size-3 rounded-sm bg-emerald-200 dark:bg-emerald-800 border border-emerald-300 dark:border-emerald-700" />
           <span>Available</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-emerald-500" />
+          <div className="size-3 rounded-sm bg-emerald-500 dark:bg-emerald-400" />
           <span>Booked</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-blue-400" />
+          <div className="size-3 rounded-sm bg-blue-400 dark:bg-blue-600" />
           <span>Checked In</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-gray-300 border border-gray-400" />
+          <div className="size-3 rounded-sm bg-border border border-border" />
           <span>Blocked / Closed</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-purple-300 border border-purple-400" />
+          <div className="size-3 rounded-sm bg-purple-300 dark:bg-purple-700 border border-purple-400 dark:border-purple-600" />
           <span>Booked Externally</span>
         </div>
         <div className="flex items-center gap-1.5">

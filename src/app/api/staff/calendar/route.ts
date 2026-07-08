@@ -11,7 +11,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const clinicId = session.user.clinicId;
+    let clinicId = session.user.clinicId;
+    const role = session.user.role;
+
+    // SYSTEM_MANAGER can specify ?clinicId= for cross-clinic access
+    if (role === "SYSTEM_MANAGER") {
+      clinicId = request.nextUrl.searchParams.get("clinicId") || clinicId;
+    }
+
     if (!clinicId) {
       return NextResponse.json(
         { error: "No clinic assigned" },

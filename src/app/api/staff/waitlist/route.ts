@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { createAuditLog, AUDIT_ACTIONS } from "@/lib/audit";
 
 // =============================================================================
 // GET /api/staff/waitlist — Fetch waitlist entries for the staff's clinic
@@ -17,9 +18,15 @@ export async function GET(request: NextRequest) {
     const clinicId = session.user.clinicId;
     const role = session.user.role;
 
-    // System managers must specify a clinic
-    const targetClinicId =
-      request.nextUrl.searchParams.get("clinicId") || clinicId;
+    const allClinics = request.nextUrl.searchParams.get("allClinics") === "true";
+    let targetClinicId = clinicId;
+
+    if (allClinics && role === "SYSTEM_MANAGER") {
+      targetClinicId = null as unknown as string; // skip clinic filter
+    } else {
+      targetClinicId = request.nextUrl.searchParams.get("clinicId") || clinicId;
+    }
+
     if (!targetClinicId) {
       return NextResponse.json(
         { error: "No clinic specified" },
@@ -35,9 +42,11 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get("status") || undefined;
 
     // Build where clause
-    const where: Prisma.WaitlistEntryWhereInput = {
-      clinicId: targetClinicId,
-    };
+    const where: Prisma.WaitlistEntryWhereInput = {};
+
+    if (targetClinicId) {
+      where.clinicId = targetClinicId;
+    }
 
     if (status) {
       where.status = status;
@@ -155,6 +164,14 @@ export async function PATCH(request: NextRequest) {
           select: { name: true },
         },
       },
+    });
+
+    createAuditLog({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.WAITLIST_UPDATED,
+      targetType: "WAITLIST",
+      targetId: id,
+      ipAddress: request.headers.get("x-forwarded-for") || undefined,
     });
 
     return NextResponse.json({

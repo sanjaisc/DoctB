@@ -86,7 +86,7 @@ export default function InsurancePage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-emerald-50/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-emerald-50/30">
       <PublicNavbar showHome />
 
       {/* ===== Main Content ===== */}

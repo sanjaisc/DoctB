@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Shield,
   Building2,
@@ -19,14 +20,37 @@ import {
   Eye,
   Plus,
   Trash2,
+  UserPlus,
   Activity,
   Database,
   Cpu,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/staff/PageHeader";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { CreateStaffDialog } from "@/components/admin/create-staff-dialog";
 import { STAFF_ROLE } from "@/lib/enums";
 import { formatDistanceToNow, parseISO } from "date-fns";
 
@@ -217,35 +241,35 @@ const STAT_CARDS: {
     label: "Total Clinics",
     icon: Building2,
     gradient: "from-emerald-500 to-emerald-600",
-    iconBg: "bg-white/20",
+    iconBg: "bg-background/20",
   },
   {
     key: "totalProviders",
     label: "Total Providers",
     icon: Users,
     gradient: "from-blue-500 to-blue-600",
-    iconBg: "bg-white/20",
+    iconBg: "bg-background/20",
   },
   {
     key: "totalAppointments",
     label: "Total Appointments",
     icon: CalendarCheck,
     gradient: "from-teal-500 to-teal-600",
-    iconBg: "bg-white/20",
+    iconBg: "bg-background/20",
   },
   {
     key: "totalReviews",
     label: "Total Reviews",
     icon: Star,
     gradient: "from-amber-500 to-amber-600",
-    iconBg: "bg-white/20",
+    iconBg: "bg-background/20",
   },
   {
     key: "avgRating",
     label: "Avg Rating",
     icon: TrendingUp,
     gradient: "from-purple-500 to-purple-600",
-    iconBg: "bg-white/20",
+    iconBg: "bg-background/20",
     format: (v: number) => v.toFixed(1),
   },
 ];
@@ -258,6 +282,8 @@ export default function SystemAdminPage() {
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [showCreateStaff, setShowCreateStaff] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -348,36 +374,23 @@ export default function SystemAdminPage() {
 
   // ---- Loaded State ----
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-xl bg-gradient-to-br from-purple-600 to-emerald-500">
-              <Shield className="size-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                System Administration
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Cross-clinic platform overview and management
-              </p>
-            </div>
+    <div className="space-y-6 animate-in fade-in-0 duration-300">
+      <PageHeader
+        title="System Administration"
+        description="Cross-clinic platform overview and management"
+        icon={
+          <div className="flex items-center justify-center size-10 rounded-xl bg-gradient-to-br from-purple-600 to-emerald-500">
+            <Shield className="size-5 text-white" />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchData}
-            className="hidden sm:flex items-center gap-2"
-          >
-            <RefreshCw className="size-3.5" />
-            Refresh
-          </Button>
-        </div>
-        {/* Gradient strip */}
-        <div className="mt-4 h-1 rounded-full bg-gradient-to-r from-purple-500 via-emerald-400 to-emerald-500" />
-      </div>
+        }
+      >
+        <Button variant="outline" size="sm" onClick={fetchData} className="items-center gap-2">
+          <RefreshCw className="size-3.5" />
+          Refresh
+        </Button>
+      </PageHeader>
+      {/* Gradient strip */}
+      <div className="mt-4 h-1 rounded-full bg-gradient-to-r from-purple-500 via-emerald-400 to-emerald-500" />
 
       {/* Platform Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -416,82 +429,70 @@ export default function SystemAdminPage() {
         <Card className="xl:col-span-3">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Building2 className="size-4 text-emerald-600" />
+              <Building2 className="size-4 text-emerald-600 dark:text-emerald-400" />
               Clinics Overview
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto max-h-96 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
-                  <tr className="border-b border-border">
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
-                      Clinic
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">
-                      City
-                    </th>
-                    <th className="text-center px-3 py-2.5 font-medium text-muted-foreground">
-                      Providers
-                    </th>
-                    <th className="text-center px-3 py-2.5 font-medium text-muted-foreground hidden md:table-cell">
-                      Today
-                    </th>
-                    <th className="text-center px-3 py-2.5 font-medium text-muted-foreground hidden md:table-cell">
-                      This Week
-                    </th>
-                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">
-                      Rating
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="max-h-96 overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+                  <TableRow className="border-b border-border">
+                    <TableHead className="px-4 py-2.5">Clinic</TableHead>
+                    <TableHead className="px-4 py-2.5 hidden sm:table-cell">City</TableHead>
+                    <TableHead className="text-center px-3 py-2.5">Providers</TableHead>
+                    <TableHead className="text-center px-3 py-2.5 hidden md:table-cell">Today</TableHead>
+                    <TableHead className="text-center px-3 py-2.5 hidden md:table-cell">This Week</TableHead>
+                    <TableHead className="text-right px-4 py-2.5">Rating</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.clinicSummary.length === 0 ? (
-                    <tr>
-                      <td
+                    <TableRow>
+                      <TableCell
                         colSpan={6}
                         className="px-4 py-8 text-center text-muted-foreground"
                       >
                         No published clinics found.
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : (
                     data.clinicSummary.map((clinic, clinicIndex) => (
-                      <tr
+                      <TableRow
                         key={clinic.id}
                         className={`border-b border-border/50 transition-all duration-200 ${clinicIndex % 2 === 0 ? 'bg-transparent' : 'bg-muted/20'} hover:bg-muted/50`}
                       >
-                        <td className="px-4 py-3">
+                        <TableCell className="px-4 py-3">
                           <a
                             href={`/clinic/${clinic.slug}`}
                             className="font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
                           >
                             {clinic.name}
                           </a>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                           {clinic.city}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums">
+                        </TableCell>
+                        <TableCell className="px-3 py-3 text-center tabular-nums">
                           {clinic.providerCount}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums hidden md:table-cell">
+                        </TableCell>
+                        <TableCell className="px-3 py-3 text-center tabular-nums hidden md:table-cell">
                           {clinic.todayAppts}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums hidden md:table-cell">
+                        </TableCell>
+                        <TableCell className="px-3 py-3 text-center tabular-nums hidden md:table-cell">
                           {clinic.weekAppts}
-                        </td>
-                        <td className="px-4 py-3 text-right">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right">
                           <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium tabular-nums">
                             <Star className="size-3.5 fill-amber-400 text-amber-400" />
                             {clinic.avgRating > 0 ? clinic.avgRating.toFixed(1) : "—"}
                           </span>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
@@ -500,7 +501,7 @@ export default function SystemAdminPage() {
         <Card className="xl:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Activity className="size-4 text-purple-600" />
+              <Activity className="size-4 text-purple-600 dark:text-purple-400" />
               Recent Activity
             </CardTitle>
           </CardHeader>
@@ -540,72 +541,71 @@ export default function SystemAdminPage() {
         </Card>
       </div>
 
-      {/* Staff Directory + System Health */}
+        {/* Staff Directory + System Health */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* Staff Directory */}
         <Card className="xl:col-span-4">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex-row items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Users className="size-4 text-emerald-600" />
+              <Users className="size-4 text-emerald-600 dark:text-emerald-400" />
               Staff Directory
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setShowCreateStaff(true)}
+            >
+              <UserPlus className="size-3.5" />
+              Create Staff
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto max-h-96 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
-                  <tr className="border-b border-border">
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
-                      Name
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">
-                      Email
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
-                      Role
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">
-                      Clinic
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden lg:table-cell">
-                      Last Login
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="max-h-96 overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+                  <TableRow className="border-b border-border">
+                    <TableHead className="px-4 py-2.5">Name</TableHead>
+                    <TableHead className="px-4 py-2.5 hidden sm:table-cell">Email</TableHead>
+                    <TableHead className="px-4 py-2.5">Role</TableHead>
+                    <TableHead className="px-4 py-2.5 hidden md:table-cell">Clinic</TableHead>
+                    <TableHead className="px-4 py-2.5 hidden lg:table-cell">Last Login</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.staffList.map((staff, staffIndex) => (
-                    <tr
+                    <TableRow
                       key={staff.id}
                       className={`border-b border-border/50 transition-all duration-200 ${staffIndex % 2 === 0 ? 'bg-transparent' : 'bg-muted/20'} hover:bg-muted/50`}
                     >
-                      <td className="px-4 py-2.5 font-medium">{staff.name}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">
+                      <TableCell className="px-4 py-2.5 font-medium">{staff.name}</TableCell>
+                      <TableCell className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">
                         {staff.email}
-                      </td>
-                      <td className="px-4 py-2.5">
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5">
                         <Badge
                           variant="outline"
                           className={`text-[11px] px-2 py-0 ${getRoleBadgeClasses(staff.role)}`}
                         >
                           {getRoleLabel(staff.role)}
                         </Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">
                         {staff.clinicName ?? (
                           <span className="text-purple-600 dark:text-purple-400 font-medium">
                             Platform
                           </span>
                         )}
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground text-xs hidden lg:table-cell">
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 text-muted-foreground text-xs hidden lg:table-cell">
                         {staff.lastLogin
                           ? formatRelativeTime(staff.lastLogin)
                           : "Never"}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
@@ -614,25 +614,25 @@ export default function SystemAdminPage() {
         <Card className="xl:col-span-1">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Cpu className="size-4 text-emerald-600" />
+              <Cpu className="size-4 text-emerald-600 dark:text-emerald-400" />
               System Health
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <HealthItem
-              icon={<Database className="size-4 text-emerald-600" />}
+              icon={<Database className="size-4 text-emerald-600 dark:text-emerald-400" />}
               label="Database"
               value="Connected"
               ok
             />
             <HealthItem
-              icon={<Cpu className="size-4 text-emerald-600" />}
+              icon={<Cpu className="size-4 text-emerald-600 dark:text-emerald-400" />}
               label="Cache"
               value="Active"
               ok
             />
             <HealthItem
-              icon={<Shield className="size-4 text-emerald-600" />}
+              icon={<Shield className="size-4 text-emerald-600 dark:text-emerald-400" />}
               label="Platform"
               value="v1.0.0 MVP"
               ok
@@ -640,6 +640,14 @@ export default function SystemAdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Create Staff Dialog */}
+      <CreateStaffDialog
+        open={showCreateStaff}
+        onOpenChange={setShowCreateStaff}
+        clinics={(data?.clinicSummary || []).map((c) => ({ id: c.id, name: c.name }))}
+        onSuccess={() => fetchData()}
+      />
     </div>
   );
 }

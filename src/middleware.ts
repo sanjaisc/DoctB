@@ -21,15 +21,19 @@ const STAFF_PROTECTED_PREFIX = "/staff/dashboard";
 // Routes accessible by CLINIC_ADMIN and above only
 const ADMIN_ONLY_ROUTES = [
   "/staff/dashboard/settings",
+  "/staff/dashboard/clinic",
   "/staff/dashboard/providers",
-  "/staff/dashboard/templates",
+  "/staff/dashboard/services",
   "/staff/dashboard/communications",
+  "/staff/dashboard/closures",
+  "/staff/dashboard/staff",
+  "/staff/dashboard/slots",
+  "/staff/dashboard/analytics",
 ];
 
 // Routes accessible by SYSTEM_MANAGER only
 const SYS_MANAGER_ONLY_ROUTES = [
-  "/staff/dashboard/system",
-  "/staff/dashboard/clinics/manage",
+  "/staff/dashboard/admin",
 ];
 
 /**

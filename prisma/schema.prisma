@@ -29,6 +29,7 @@ model SystemConfig {
   waitlistProcessingDelayMin  Int      @default(3)
   zeroDepositRequireCard      Boolean  @default(false)
   platformFeeCents            Int      @default(0)
+  reviewWindowDays            Int      @default(7)
   updatedAt                   DateTime @updatedAt
 }
 
@@ -63,6 +64,7 @@ model Service {
   selfPayPriceCents    Int     @default(0)       // $0 = not set
   selfPayPaymentType   String  @default("STANDARD_DEPOSIT") // FULL_UPFRONT | STANDARD_DEPOSIT
   isActive             Boolean @default(true)
+  isBookable           Boolean @default(true)
   sortOrder            Int     @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -142,10 +144,12 @@ model Clinic {
   status                  String   @default("DRAFT") // DRAFT|PENDING|PUBLISHED|SUSPENDED|ARCHIVED
 
   // Financial configuration
-  inPersonDepositCents    Int      @default(2500)    // $25.00
-  videoDepositCents       Int      @default(0)       // $0.00
-  selfPayFlatRateCents    Int      @default(0)       // per-visit flat rate
-  cancellationLeadTimeMin Int      @default(1440)    // 24 hours in minutes
+  inPersonDepositCents             Int      @default(2500)    // $25.00
+  videoDepositCents                Int      @default(0)       // $0.00
+  selfPayFlatRateCents             Int      @default(0)       // per-visit flat rate
+  inPersonCancellationLeadTimeMin  Int      @default(1440)    // 24 hours
+  videoCancellationLeadTimeMin     Int      @default(120)     // 2 hours
+  reschedulePolicy                 String   @default("FORFEIT_ON_LATE_RESCHEDULE")
 
   // Email / communication
   emailFromName           String?
@@ -156,6 +160,9 @@ model Clinic {
   // Visibility
   isFeatured              Boolean  @default(false)
   featuredExpiry          DateTime?
+
+  // Map / Embed
+  mapEmbedUrl             String?
 
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
@@ -174,6 +181,8 @@ model Clinic {
   staff                   User[]
   reviews                 Review[]
   waitlistEntries         WaitlistEntry[]
+  emailTemplates          EmailTemplate[]
+  intakeFields            IntakeField[]
 
   @@index([status])
   @@index([latitude, longitude])
@@ -189,6 +198,7 @@ model Provider {
   credentials         String?              // e.g., "MD", "DO", "NP", "PA-C"
   slug                String   @unique
   bio                 String?              // detailed biography (markdown)
+  qualifications      String?              // structured text: board certs, education
   photoUrl            String?
   npiNumber           String?              // National Provider Identifier
   yearsExperience     Int?
@@ -396,6 +406,7 @@ model Appointment {
   conversionRanking   String?                       // "EARLIEST" | "NEAREST" — from search cookie
   ipHash              String?                       // hashed IP for fraud detection
   intakeCompleted     Boolean   @default(false)
+  intakeData          String?                       // JSON: patient-submitted intake field responses (keyed by field label)
   insuranceVerified   Boolean   @default(false)
 
   createdAt           DateTime  @default(now())
@@ -548,6 +559,43 @@ model WaitlistEntry {
 }
 
 // =============================================================================
+// SECTION 11b: Email Templates
+// =============================================================================
+
+/// Per-clinic email template overrides. Falls back to hardcoded defaults.
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  clinicId    String
+  templateKey String                         // booking_confirmation | check_in_reminder | waitlist_offer
+  subject     String
+  body        String                         // HTML body with {{PLACEHOLDER}} tags
+  updatedAt   DateTime @updatedAt
+
+  clinic      Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, templateKey])
+}
+
+// =============================================================================
+// SECTION 11c: Intake Fields
+// =============================================================================
+
+/// Per-clinic custom intake fields. Rendered dynamically on the public intake form.
+model IntakeField {
+  id         String  @id @default(cuid())
+  clinicId   String
+  label      String
+  fieldType  String  @default("text")       // text | textarea | select | checkbox
+  options    String?                        // JSON array for select/checkbox
+  required   Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  clinic     Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, sortOrder])
+}
+
+// =============================================================================
 // SECTION 12: Clinic Closures / Holidays
 // =============================================================================
 
@@ -576,16 +624,17 @@ model ClinicClosure {
 /// Roles: SYSTEM_MANAGER, CLINIC_ADMIN, CLINIC_RECEPTION
 /// Clinic Admin inherits all Reception capabilities — enforced via role hierarchy in middleware.
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String
-  passwordHash  String                         // bcrypt hash
-  role          String   @default("CLINIC_RECEPTION") // SYSTEM_MANAGER|CLINIC_ADMIN|CLINIC_RECEPTION
-  clinicId      String?                         // Null for SYSTEM_MANAGER
-  isActive      Boolean  @default(true)
-  lastLoginAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  name                String
+  passwordHash        String                         // bcrypt hash
+  role                String   @default("CLINIC_RECEPTION") // SYSTEM_MANAGER|CLINIC_ADMIN|CLINIC_RECEPTION
+  clinicId            String?                         // Null for SYSTEM_MANAGER
+  isActive            Boolean  @default(true)
+  mustChangePassword  Boolean  @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   clinic        Clinic?  @relation(fields: [clinicId], references: [id], onDelete: SetNull)
   notes         InternalNote[]

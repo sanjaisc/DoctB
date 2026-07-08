@@ -108,7 +108,7 @@ export function QrCodeDisplay({ appointmentId, patientName, manageUrl }: QrCodeD
   // ---- Loading skeleton ----
   if (loading) {
     return (
-      <Card className="border-emerald-200 bg-white">
+      <Card className="border-emerald-200 bg-background">
         <CardContent className="p-6 flex flex-col items-center gap-4">
           <Skeleton className="size-48 rounded-lg" />
           <Skeleton className="h-4 w-40" />
@@ -142,10 +142,10 @@ export function QrCodeDisplay({ appointmentId, patientName, manageUrl }: QrCodeD
 
   // ---- QR code display ----
   return (
-    <Card className="border-emerald-200 bg-white">
+    <Card className="border-emerald-200 bg-background">
       <CardContent className="p-6 flex flex-col items-center gap-4">
         {/* QR Code Image */}
-        <div className="p-3 bg-white rounded-xl border border-emerald-100 shadow-sm">
+        <div className="p-3 bg-background rounded-xl border border-emerald-100 shadow-sm">
           <img
             src={qrData.qrDataUrl}
             alt="Appointment QR Code"
@@ -170,7 +170,7 @@ export function QrCodeDisplay({ appointmentId, patientName, manageUrl }: QrCodeD
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer"
+            className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
             onClick={handleDownload}
           >
             {copied ? (
@@ -183,7 +183,7 @@ export function QrCodeDisplay({ appointmentId, patientName, manageUrl }: QrCodeD
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer"
+            className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
             onClick={handleCopyLink}
           >
             {copied ? (

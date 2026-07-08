@@ -314,7 +314,7 @@ export default function IntakeFormPage() {
 
   if (pageState === "loading") {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <Header />
         <main className="flex-1 py-8 px-4">
           <LoadingSkeleton />
@@ -333,7 +333,7 @@ export default function IntakeFormPage() {
     pageState === "error"
   ) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <Header />
         <main className="flex-1 flex items-center justify-center p-4">
           <motion.div className="max-w-md w-full" {...fadeInUp}>
@@ -410,7 +410,7 @@ export default function IntakeFormPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <Header />
         <main className="flex-1 flex items-center justify-center p-4">
           <motion.div className="max-w-md w-full text-center" {...fadeInUp}>
@@ -464,7 +464,7 @@ export default function IntakeFormPage() {
     const providerName = `${data.appointment.provider.firstName} ${data.appointment.provider.lastName}${data.appointment.provider.credentials ? `, ${data.appointment.provider.credentials}` : ""}`;
 
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <Header />
 
         <main className="flex-1 py-6 px-4">
@@ -786,7 +786,7 @@ export default function IntakeFormPage() {
 
 function Header() {
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
+    <header className="bg-background/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -809,7 +809,7 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="border-t border-border/50 bg-white/80 mt-auto">
+    <footer className="border-t border-border/50 bg-background/80 mt-auto">
       <div className="max-w-4xl mx-auto px-4 py-4 text-center">
         <p className="text-xs text-muted-foreground">
           Powered by <span className="font-semibold text-foreground">DoctA</span> &middot; Patient Intake Portal

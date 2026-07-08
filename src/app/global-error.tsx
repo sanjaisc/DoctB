@@ -10,7 +10,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-emerald-50/50 to-white p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-emerald-50/50 to-background p-4">
           <div className="max-w-md w-full text-center space-y-6">
             {/* Heart icon with error state */}
             <div className="relative inline-flex">

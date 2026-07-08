@@ -221,7 +221,7 @@ export function ProviderAvailabilityCalendar({
           <Button
             variant="outline"
             size="icon"
-            className="size-8 cursor-pointer"
+            className="size-8"
             onClick={goPrevWeek}
             disabled={isThisWeek}
             aria-label="Previous week"
@@ -241,7 +241,7 @@ export function ProviderAvailabilityCalendar({
           <Button
             variant="outline"
             size="icon"
-            className="size-8 cursor-pointer"
+            className="size-8"
             onClick={goNextWeek}
             aria-label="Next week"
           >
@@ -316,7 +316,7 @@ export function ProviderAvailabilityCalendar({
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="size-10 text-amber-500 mb-3" />
           <p className="text-sm text-muted-foreground mb-3">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchAvailability} className="cursor-pointer">
+          <Button variant="outline" size="sm" onClick={fetchAvailability} className="">
             <Loader2 className="size-3.5 mr-1.5" />
             Try Again
           </Button>
@@ -331,7 +331,7 @@ export function ProviderAvailabilityCalendar({
           <p className="text-xs text-muted-foreground mb-3">
             Try checking the next week for {providerName}&apos;s schedule.
           </p>
-          <Button variant="outline" size="sm" onClick={goNextWeek} className="cursor-pointer">
+          <Button variant="outline" size="sm" onClick={goNextWeek} className="">
             Next Week
             <ChevronRight className="size-3.5 ml-1" />
           </Button>

@@ -5,7 +5,7 @@ import { DoctALogo } from "@/components/docta-logo";
 
 export function PublicFooter() {
   return (
-    <footer className="mt-auto bg-white/80 backdrop-blur-sm">
+    <footer className="mt-auto bg-background/80 backdrop-blur-sm">
       {/* Gradient top border separator */}
       <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/50 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

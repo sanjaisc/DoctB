@@ -477,7 +477,7 @@ export function SearchPage() {
       <PublicNavbar />
 
       {/* ===== Hero Section ===== */}
-      <section className="relative bg-gradient-to-br from-emerald-50 via-white to-teal-50/30 pb-8 pt-12 md:pt-16 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-emerald-50 via-background to-teal-50/30 pb-8 pt-12 md:pt-16 overflow-hidden">
         {/* Dot pattern background */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -559,7 +559,7 @@ export function SearchPage() {
           {/* Search Form — Card Wrapper with animated gradient border */}
           <form onSubmit={onFormSubmit} className="text-left">
             <div className="p-[1px] rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]">
-            <div className="rounded-[15px] border-0 bg-white/90 backdrop-blur-sm shadow-lg shadow-emerald-900/5 p-4 md:p-6 space-y-4">
+            <div className="rounded-[15px] border-0 bg-background/90 backdrop-blur-sm shadow-lg shadow-emerald-900/5 p-4 md:p-6 space-y-4">
               {/* Row 1: Search Input */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
@@ -568,7 +568,7 @@ export function SearchPage() {
                   placeholder="Search by doctor name, clinic, or condition..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="h-12 pl-10 pr-10 text-base bg-white w-full"
+                  className="h-12 pl-10 pr-10 text-base bg-background w-full"
                 />
                 {query && (
                   <button
@@ -589,7 +589,7 @@ export function SearchPage() {
                     value={specialtyId ?? undefined}
                     onValueChange={(val) => setSpecialtyId(val)}
                   >
-                    <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
+                    <SelectTrigger className="h-10 w-full bg-background">
                       <SelectValue placeholder="Select specialty *" />
                     </SelectTrigger>
                     <SelectContent>
@@ -597,7 +597,7 @@ export function SearchPage() {
                         <SelectItem
                           key={s.id}
                           value={s.id}
-                          className="cursor-pointer"
+                          className=""
                         >
                           {s.name}
                         </SelectItem>
@@ -627,14 +627,14 @@ export function SearchPage() {
                   >
                     <ToggleGroupItem
                       value="ADULT"
-                      className="flex-1 gap-1.5 cursor-pointer"
+                      className="flex-1 gap-1.5"
                     >
                       <User className="size-3.5" />
                       <span className="text-xs sm:text-sm">Adult</span>
                     </ToggleGroupItem>
                     <ToggleGroupItem
                       value="PEDIATRIC"
-                      className="flex-1 gap-1.5 cursor-pointer"
+                      className="flex-1 gap-1.5"
                     >
                       <Baby className="size-3.5" />
                       <span className="text-xs sm:text-sm">Pediatric</span>
@@ -649,18 +649,18 @@ export function SearchPage() {
                     setInsuranceId(val === "__none__" ? "" : val)
                   }
                 >
-                  <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
+                  <SelectTrigger className="h-10 w-full bg-background">
                     <SelectValue placeholder="Any Insurance" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__" className="cursor-pointer">
+                    <SelectItem value="__none__" className="">
                       Uninsured
                     </SelectItem>
                     {insurances.map((ins) => (
                       <SelectItem
                         key={ins.id}
                         value={ins.id}
-                        className="cursor-pointer"
+                        className=""
                       >
                         {ins.name}
                       </SelectItem>
@@ -675,14 +675,14 @@ export function SearchPage() {
                     setModality(val as "IN_PERSON" | "VIDEO")
                   }
                 >
-                  <SelectTrigger className="h-10 w-full bg-white cursor-pointer">
+                  <SelectTrigger className="h-10 w-full bg-background">
                     <SelectValue placeholder="Any Visit Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="IN_PERSON" className="cursor-pointer">
+                    <SelectItem value="IN_PERSON" className="">
                       In-Person
                     </SelectItem>
-                    <SelectItem value="VIDEO" className="cursor-pointer">
+                    <SelectItem value="VIDEO" className="">
                       Video
                     </SelectItem>
                   </SelectContent>
@@ -719,7 +719,7 @@ export function SearchPage() {
                           geocodeZip(zipCode);
                         }
                       }}
-                      className="h-9 w-[120px] pr-8 text-sm bg-white"
+                      className="h-9 w-[120px] pr-8 text-sm bg-background"
                     />
                     {zipStatus === "resolved" && (
                       <CheckCircle2
@@ -776,7 +776,7 @@ export function SearchPage() {
                     size="sm"
                     onClick={requestGeoLocation}
                     disabled={geoStatus === "requesting"}
-                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer shrink-0"
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 shrink-0"
                   >
                     {geoStatus === "requesting" ? (
                       <Loader2 className="size-3.5 animate-spin" />
@@ -795,18 +795,18 @@ export function SearchPage() {
                     if (val) setSort(val as "distance" | "time");
                   }}
                   variant="outline"
-                  className="cursor-pointer"
+                  className=""
                 >
                   <ToggleGroupItem
                     value="distance"
-                    className="gap-1.5 cursor-pointer"
+                    className="gap-1.5"
                   >
                     <Navigation className="size-3.5" />
                     <span className="text-xs sm:text-sm">Nearest</span>
                   </ToggleGroupItem>
                   <ToggleGroupItem
                     value="time"
-                    className="gap-1.5 cursor-pointer"
+                    className="gap-1.5"
                   >
                     <Clock className="size-3.5" />
                     <span className="text-xs sm:text-sm">Earliest</span>
@@ -819,7 +819,7 @@ export function SearchPage() {
                 <Button
                   type="submit"
                   disabled={!specialtyId || loading}
-                  className="h-12 px-10 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-base font-semibold shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all btn-shimmer"
+                  className="h-12 px-10 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all btn-shimmer"
                 >
                   {loading ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -1155,7 +1155,7 @@ export function SearchPage() {
             <Button
               variant="outline"
               onClick={() => executeSearch()}
-              className="cursor-pointer"
+              className=""
             >
               Try Again
             </Button>
@@ -1171,7 +1171,7 @@ export function SearchPage() {
               <div className="absolute inset-0 flex items-center justify-center">
                 <Search className="size-8 text-emerald-400/60" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border shadow-sm flex items-center justify-center">
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-background border shadow-sm flex items-center justify-center">
                 <X className="size-3.5 text-muted-foreground" />
               </div>
             </div>
@@ -1190,7 +1190,7 @@ export function SearchPage() {
                   variant="outline"
                   size="sm"
                   onClick={onExpandRadius}
-                  className="cursor-pointer"
+                  className=""
                 >
                   <MapPin className="size-3.5" />
                   Expand radius to 25 mi?
@@ -1201,7 +1201,7 @@ export function SearchPage() {
                   variant="outline"
                   size="sm"
                   onClick={onRemoveInsurance}
-                  className="cursor-pointer"
+                  className=""
                 >
                   Remove insurance filter?
                 </Button>
@@ -1211,7 +1211,7 @@ export function SearchPage() {
                   variant="outline"
                   size="sm"
                   onClick={onRemoveModality}
-                  className="cursor-pointer"
+                  className=""
                 >
                   Try all visit types?
                 </Button>
@@ -1252,7 +1252,7 @@ export function SearchPage() {
                   variant="ghost"
                   size="sm"
                   onClick={clearFilters}
-                  className="text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                  className="text-muted-foreground hover:text-foreground shrink-0"
                 >
                   <X className="size-3.5" />
                   <span className="hidden sm:inline ml-1">Clear filters</span>
@@ -1281,7 +1281,7 @@ export function SearchPage() {
                   variant="outline"
                   onClick={onLoadMore}
                   disabled={loadingMore}
-                  className="cursor-pointer"
+                  className=""
                 >
                   {loadingMore && <Loader2 className="size-4 animate-spin" />}
                   Load More

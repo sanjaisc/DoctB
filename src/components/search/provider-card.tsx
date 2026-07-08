@@ -180,7 +180,7 @@ export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: 
 
   return (
     <Card
-      className={`w-full max-w-3xl mx-auto transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:border-l-4 hover:border-l-emerald-400 hover:bg-gradient-to-br hover:from-white hover:to-emerald-50/40 py-0 gap-0 stagger-fade-in`}
+      className={`w-full max-w-3xl mx-auto transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:border-l-4 hover:border-l-emerald-400 hover:bg-gradient-to-br hover:from-background hover:to-emerald-50/40 py-0 gap-0 stagger-fade-in`}
       style={{ animationDelay: `${staggerDelay}ms`, animationFillMode: "both" }}
     >
       <CardContent className="p-4 space-y-3">
@@ -319,7 +319,7 @@ export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: 
               <Button
                 type="button"
                 variant="outline"
-                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-800 cursor-pointer"
+                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-800"
                 onClick={() => setWaitlistOpen(true)}
               >
                 <Bell className="size-4 mr-2" />
@@ -379,7 +379,7 @@ export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: 
                 variant="outline"
                 onClick={() => setWaitlistOpen(false)}
                 disabled={waitlistSubmitting}
-                className="cursor-pointer"
+                className=""
               >
                 Cancel
               </Button>
@@ -392,7 +392,7 @@ export function ProviderCard({ provider, index = 0, specialtyId, onSlotClick }: 
                   !waitlistEmail.trim() ||
                   !waitlistPhone.trim()
                 }
-                className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {waitlistSubmitting && <Loader2 className="size-4 animate-spin mr-2" />}
                 Join Waitlist

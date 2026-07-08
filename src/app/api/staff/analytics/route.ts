@@ -39,13 +39,24 @@ export async function GET(request: NextRequest) {
     const daysMap: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
     const days = daysMap[period] ?? 30;
     const now = new Date();
-    const periodStart = startOfDay(subDays(now, days - 1));
-    const periodEnd = endOfDay(now);
+    // Support custom date range via query params
+    const customDateFrom = request.nextUrl.searchParams.get("dateFrom");
+    const customDateTo = request.nextUrl.searchParams.get("dateTo");
+    const useCustomRange = !!(customDateFrom && customDateTo);
+    const periodStart = useCustomRange
+      ? startOfDay(new Date(customDateFrom))
+      : startOfDay(subDays(now, days - 1));
+    const periodEnd = useCustomRange
+      ? endOfDay(new Date(customDateTo))
+      : endOfDay(now);
+    const effectiveDays = useCustomRange
+      ? Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1
+      : days;
 
-    const cacheKey = `analytics:${targetClinicId}:${period}:${format(now, "yyyy-MM-dd")}`;
+    const cacheKey = `analytics:${targetClinicId}:${useCustomRange ? `${customDateFrom}_${customDateTo}` : period}:${format(now, "yyyy-MM-dd")}`;
 
     const data = await cache.getOrSet(cacheKey, async () => {
-      return buildAnalytics(targetClinicId, periodStart, periodEnd, days);
+      return buildAnalytics(targetClinicId, periodStart, periodEnd, effectiveDays);
     }, 300);
 
     return NextResponse.json(data);
@@ -275,6 +286,34 @@ async function buildAnalytics(
   const busiestHourLabel =
     busiestHour >= 0 ? `${busiestHour.toString().padStart(2, "0")}:00` : "N/A";
 
+  // ---------------------------------------------------------------
+  // 6. Financial metrics
+  // ---------------------------------------------------------------
+  const financialRaw = await db.appointment.findMany({
+    where: {
+      clinicId,
+      startTime: { gte: periodStart, lte: periodEnd },
+    },
+    select: {
+      depositCents: true,
+      selfPayCents: true,
+      status: true,
+    },
+  });
+
+  const totalDepositCents = financialRaw.reduce((sum, a) => sum + a.depositCents, 0);
+  const totalSelfPayCents = financialRaw.reduce((sum, a) => sum + a.selfPayCents, 0);
+  const completedRevenueCents = financialRaw
+    .filter((a) => a.status === "COMPLETED")
+    .reduce((sum, a) => sum + a.depositCents + a.selfPayCents, 0);
+
+  const financial = {
+    totalDepositCents,
+    totalSelfPayCents,
+    totalPotentialRevenueCents: totalDepositCents + totalSelfPayCents,
+    completedRevenueCents,
+  };
+
   return {
     period: {
       start: format(periodStart, "yyyy-MM-dd"),
@@ -284,6 +323,7 @@ async function buildAnalytics(
     modality,
     providerPerformance,
     summary,
+    financial,
     busiestDay,
     busiestHour: busiestHourLabel,
   };

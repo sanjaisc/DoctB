@@ -28,15 +28,26 @@ export async function POST(
 
     const staffId = session.user.id;
     const staffName = session.user.name || "Unknown Staff";
-    const clinicId = session.user.clinicId;
+    let clinicId = session.user.clinicId;
+    const role = session.user.role;
+
+    const { id: appointmentId } = await params;
+
+    // SYSTEM_MANAGER can reschedule any appointment — derive clinicId from the appointment
+    if (!clinicId && role === "SYSTEM_MANAGER") {
+      const appt = await db.appointment.findUnique({
+        where: { id: appointmentId },
+        select: { clinicId: true },
+      });
+      if (appt) clinicId = appt.clinicId;
+    }
+
     if (!clinicId) {
       return NextResponse.json(
         { error: "No clinic assigned to this user" },
         { status: 400 }
       );
     }
-
-    const { id: appointmentId } = await params;
 
     // ---- 2. Parse body ----
     let body: RescheduleBody;

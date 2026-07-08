@@ -338,7 +338,7 @@ export default function ActivityPage() {
           <Button
             variant="outline"
             size="sm"
-            className="cursor-pointer"
+            className=""
             onClick={fetchNotifications}
           >
             <RefreshCw className="size-3.5 mr-2" />
@@ -347,7 +347,7 @@ export default function ActivityPage() {
           <Button
             variant="outline"
             size="sm"
-            className="cursor-pointer"
+            className=""
             onClick={handleMarkAllRead}
           >
             <CheckCircle2 className="size-3.5 mr-2" />

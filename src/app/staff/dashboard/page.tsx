@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { StatCard } from "@/components/staff/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow } from "date-fns";
@@ -66,52 +67,6 @@ interface DashboardData {
   todayAppointments: TodayAppointment[];
   upcomingAppointments: TodayAppointment[];
   recentAppointments: TodayAppointment[];
-}
-
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  gradient,
-  iconBg,
-  trend,
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  gradient: string;
-  iconBg: string;
-  trend?: string;
-}) {
-  return (
-    <Card className="relative overflow-hidden border-border/50 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300">
-      <div className={`absolute inset-x-0 top-0 h-1 ${gradient}`} />
-      {/* Subtle gradient overlay from top */}
-      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
-            )}
-            {trend && (
-              <div className="flex items-center gap-1 text-xs font-medium">
-                <TrendingUp className="size-3 text-emerald-600" />
-                <span className="text-emerald-600">{trend}</span>
-              </div>
-            )}
-          </div>
-          <div className={`size-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
-            <Icon className="size-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function AppointmentRow({
@@ -153,8 +108,8 @@ function AppointmentRow({
           variant="outline"
           className={`text-[10px] px-2 py-0.5 ${
             apt.modality === "VIDEO"
-              ? "bg-blue-50 text-blue-600 border-blue-200"
-              : "bg-emerald-50 text-emerald-600 border-emerald-200"
+              ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+              : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
           }`}
         >
           {apt.modality === "VIDEO" ? (
@@ -168,8 +123,8 @@ function AppointmentRow({
           variant="outline"
           className={`text-[10px] px-2 py-0.5 ${
             apt.status === "CHECKED_IN"
-              ? "bg-amber-50 text-amber-700 border-amber-200"
-              : "bg-sky-50 text-sky-700 border-sky-200"
+              ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+              : "bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800"
           }`}
         >
           {apt.status === "CHECKED_IN" ? (
@@ -208,11 +163,11 @@ interface ActivityNotification {
 }
 
 const ACTIVITY_ICON_MAP: Record<string, { icon: React.ElementType; color: string; bg: string; borderColor: string }> = {
-  [AUDIT_ACTIONS.BOOKING_CREATED]: { icon: CalendarPlus, color: "text-emerald-600", bg: "bg-emerald-100", borderColor: "border-l-emerald-500" },
-  [AUDIT_ACTIONS.BOOKING_CANCELLED]: { icon: XCircle, color: "text-red-500", bg: "bg-red-100", borderColor: "border-l-red-500" },
-  [AUDIT_ACTIONS.BOOKING_CHECKED_IN]: { icon: CheckCircle, color: "text-blue-600", bg: "bg-blue-100", borderColor: "border-l-blue-500" },
-  [AUDIT_ACTIONS.BOOKING_COMPLETED]: { icon: CheckCheck, color: "text-green-600", bg: "bg-green-100", borderColor: "border-l-green-500" },
-  [AUDIT_ACTIONS.BOOKING_NO_SHOW]: { icon: UserX, color: "text-amber-600", bg: "bg-amber-100", borderColor: "border-l-amber-500" },
+  [AUDIT_ACTIONS.BOOKING_CREATED]: { icon: CalendarPlus, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", borderColor: "border-l-emerald-500" },
+  [AUDIT_ACTIONS.BOOKING_CANCELLED]: { icon: XCircle, color: "text-red-500 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30", borderColor: "border-l-red-500" },
+  [AUDIT_ACTIONS.BOOKING_CHECKED_IN]: { icon: CheckCircle, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30", borderColor: "border-l-blue-500" },
+  [AUDIT_ACTIONS.BOOKING_COMPLETED]: { icon: CheckCheck, color: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30", borderColor: "border-l-green-500" },
+  [AUDIT_ACTIONS.BOOKING_NO_SHOW]: { icon: UserX, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30", borderColor: "border-l-amber-500" },
 };
 
 function getActivityDescription(n: ActivityNotification): string {
@@ -255,8 +210,8 @@ function RecentActivitySection({ clinicId }: { clinicId: string | null }) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <Bell className="size-4 text-emerald-600" />
+            <div className="size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <Bell className="size-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <CardTitle className="text-base">Recent Activity</CardTitle>
@@ -322,7 +277,7 @@ function RecentActivitySection({ clinicId }: { clinicId: string | null }) {
             })}
             <Link
               href="/staff/dashboard/activity"
-              className="w-full flex items-center justify-center gap-1 pt-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+              className="w-full flex items-center justify-center gap-1 pt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
             >
               View all
               <ArrowRight className="size-3" />
@@ -379,15 +334,15 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50/30">
+      <Card className="border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-950/20">
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <AlertTriangle className="size-8 text-red-400 mb-3" />
-          <p className="text-sm font-medium text-red-800">Failed to load dashboard</p>
-          <p className="text-xs text-red-600 mt-1">{error}</p>
+          <AlertTriangle className="size-8 text-red-400 dark:text-red-300 mb-3" />
+          <p className="text-sm font-medium text-red-800 dark:text-red-200">Failed to load dashboard</p>
+          <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>
           <Button
             variant="outline"
             size="sm"
-            className="mt-4 cursor-pointer"
+            className="mt-4"
             onClick={fetchDashboard}
           >
             <RefreshCw className="size-3.5 mr-2" />
@@ -417,7 +372,7 @@ export default function DashboardPage() {
           <Button
             variant="outline"
             size="sm"
-            className="cursor-pointer"
+            className=""
             onClick={() => router.push("/staff/dashboard/calendar")}
           >
             <CalendarDays className="size-3.5 mr-2" />
@@ -425,7 +380,7 @@ export default function DashboardPage() {
           </Button>
           <Button
             size="sm"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 cursor-pointer"
+            className="bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 dark:shadow-emerald-500/20"
             onClick={() => router.push("/staff/dashboard/book")}
           >
             <CalendarPlus className="size-3.5 mr-2" />
@@ -442,7 +397,7 @@ export default function DashboardPage() {
           subtitle={`${data.stats.bookedToday} of ${data.stats.totalSlotsToday} slots filled`}
           icon={CalendarDays}
           gradient="bg-gradient-to-r from-emerald-500 to-teal-500"
-          iconBg="bg-emerald-100 text-emerald-600"
+          iconBg="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
           trend={`${data.stats.utilizationPercent}% utilization`}
         />
         <StatCard
@@ -451,7 +406,7 @@ export default function DashboardPage() {
           subtitle="Currently waiting"
           icon={UserCheck}
           gradient="bg-gradient-to-r from-blue-500 to-indigo-500"
-          iconBg="bg-blue-100 text-blue-600"
+          iconBg="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
         />
         <StatCard
           title="Upcoming"
@@ -459,7 +414,7 @@ export default function DashboardPage() {
           subtitle="Appointments in next 7 days"
           icon={Clock}
           gradient="bg-gradient-to-r from-amber-500 to-orange-500"
-          iconBg="bg-amber-100 text-amber-600"
+          iconBg="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
         />
         <StatCard
           title="Total Bookings"
@@ -467,12 +422,12 @@ export default function DashboardPage() {
           subtitle={`${data.stats.completedCount} completed · ${data.stats.cancelledCount} cancelled · ${data.stats.noShowCount} no-shows`}
           icon={BarChart3}
           gradient="bg-gradient-to-r from-purple-500 to-pink-500"
-          iconBg="bg-purple-100 text-purple-600"
+          iconBg="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
         />
       </div>
 
       {/* Gradient divider */}
-      <div className="h-px bg-gradient-to-r from-emerald-200/30 via-emerald-200/50 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-emerald-200/30 dark:from-emerald-800/30 via-emerald-200/50 dark:via-emerald-800/50 to-transparent" />
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -481,8 +436,8 @@ export default function DashboardPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <Activity className="size-4 text-emerald-600" />
+                <div className="size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <Activity className="size-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -502,7 +457,7 @@ export default function DashboardPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs cursor-pointer"
+                className="text-xs"
                 onClick={() => router.push("/staff/dashboard/appointments")}
               >
                 View all
@@ -539,8 +494,8 @@ export default function DashboardPage() {
           <Card className="border-border/50 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <TrendingUp className="size-4 text-emerald-600" />
+                <div className="size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 Quick Actions
               </CardTitle>
@@ -548,44 +503,44 @@ export default function DashboardPage() {
             <CardContent className="space-y-2 px-4 pb-4">
               <button
                 onClick={() => router.push("/staff/dashboard/book")}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-all text-left cursor-pointer group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 border border-emerald-200/60 dark:border-emerald-800/60 transition-all text-left cursor-pointer group"
               >
-                <div className="size-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="size-9 rounded-lg bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <CalendarPlus className="size-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-emerald-900">New Booking</p>
-                  <p className="text-xs text-emerald-700/70">Book for a phone-in patient</p>
+                  <p className="text-sm font-medium text-emerald-900 dark:text-emerald-50">New Booking</p>
+                  <p className="text-xs text-emerald-700/70 dark:text-emerald-300/70">Book for a phone-in patient</p>
                 </div>
-                <ArrowRight className="size-4 text-emerald-400 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+                <ArrowRight className="size-4 text-emerald-400 dark:text-emerald-300 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </button>
 
               <button
                 onClick={() => router.push("/staff/dashboard/calendar")}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition-all text-left cursor-pointer group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200/60 dark:border-blue-800/60 transition-all text-left cursor-pointer group"
               >
-                <div className="size-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="size-9 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <CalendarDays className="size-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-900">View Calendar</p>
-                  <p className="text-xs text-blue-700/70">See daily schedule grid</p>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-50">View Calendar</p>
+                  <p className="text-xs text-blue-700/70 dark:text-blue-300/70">See daily schedule grid</p>
                 </div>
-                <ArrowRight className="size-4 text-blue-400 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+                <ArrowRight className="size-4 text-blue-400 dark:text-blue-300 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </button>
 
               <button
                 onClick={() => router.push("/staff/dashboard/slots")}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/60 transition-all text-left cursor-pointer group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200/60 dark:border-amber-800/60 transition-all text-left cursor-pointer group"
               >
-                <div className="size-9 rounded-lg bg-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="size-9 rounded-lg bg-amber-600 dark:bg-amber-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Clock className="size-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-amber-900">Manage Slots</p>
-                  <p className="text-xs text-amber-700/70">Block or free time slots</p>
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-50">Manage Slots</p>
+                  <p className="text-xs text-amber-700/70 dark:text-amber-300/70">Block or free time slots</p>
                 </div>
-                <ArrowRight className="size-4 text-amber-400 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+                <ArrowRight className="size-4 text-amber-400 dark:text-amber-300 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </button>
             </CardContent>
           </Card>
@@ -594,8 +549,8 @@ export default function DashboardPage() {
           <Card className="border-border/50 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <BarChart3 className="size-4 text-emerald-600" />
+                <div className="size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <BarChart3 className="size-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 Performance
               </CardTitle>
@@ -623,33 +578,33 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                  <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <CheckCircle2 className="size-3.5 text-emerald-600" />
-                      <span className="text-xs text-emerald-700 font-medium">Completed</span>
+                      <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">Completed</span>
                     </div>
-                    <p className="text-xl font-bold text-emerald-800">{data.stats.completedCount}</p>
+                    <p className="text-xl font-bold text-emerald-800 dark:text-emerald-200">{data.stats.completedCount}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-red-50/60 border border-red-100">
+                  <div className="p-3 rounded-xl bg-red-50/60 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <XCircle className="size-3.5 text-red-500" />
-                      <span className="text-xs text-red-700 font-medium">Cancelled</span>
+                      <XCircle className="size-3.5 text-red-500 dark:text-red-400" />
+                      <span className="text-xs text-red-700 dark:text-red-300 font-medium">Cancelled</span>
                     </div>
-                    <p className="text-xl font-bold text-red-800">{data.stats.cancelledCount}</p>
+                    <p className="text-xl font-bold text-red-800 dark:text-red-200">{data.stats.cancelledCount}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+                  <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <AlertTriangle className="size-3.5 text-amber-600" />
-                      <span className="text-xs text-amber-700 font-medium">No-shows</span>
+                      <AlertTriangle className="size-3.5 text-amber-600 dark:text-amber-400" />
+                      <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">No-shows</span>
                     </div>
-                    <p className="text-xl font-bold text-amber-800">{data.stats.noShowCount}</p>
+                    <p className="text-xl font-bold text-amber-800 dark:text-amber-200">{data.stats.noShowCount}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
+                  <div className="p-3 rounded-xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/30">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Phone className="size-3.5 text-sky-600" />
-                      <span className="text-xs text-sky-700 font-medium">Available</span>
+                      <Phone className="size-3.5 text-sky-600 dark:text-sky-400" />
+                      <span className="text-xs text-sky-700 dark:text-sky-300 font-medium">Available</span>
                     </div>
-                    <p className="text-xl font-bold text-sky-800">{data.stats.availableSlotsToday}</p>
+                    <p className="text-xl font-bold text-sky-800 dark:text-sky-200">{data.stats.availableSlotsToday}</p>
                   </div>
                 </div>
               </div>

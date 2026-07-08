@@ -87,7 +87,7 @@ const STATS = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-emerald-50/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-emerald-50/30">
       <PublicNavbar showHome />
 
       {/* ===== Main Content ===== */}
@@ -243,7 +243,7 @@ export default function AboutPage() {
                 <Link href="/">
                   <Button
                     variant="outline"
-                    className="mt-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+                    className="mt-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                   >
                     Back to Search
                   </Button>

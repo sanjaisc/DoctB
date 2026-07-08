@@ -266,7 +266,7 @@ export default function ReviewPage() {
 
   if (pageState === "loading") {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <ReviewHeader />
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="max-w-2xl w-full space-y-6">
@@ -284,7 +284,7 @@ export default function ReviewPage() {
 
   if (pageState === "invalid") {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <ReviewHeader />
         <main className="flex-1 flex items-center justify-center p-4">
           <motion.div className="max-w-md w-full" {...fadeInUp}>
@@ -320,7 +320,7 @@ export default function ReviewPage() {
 
   if (pageState === "error") {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <ReviewHeader />
         <main className="flex-1 flex items-center justify-center p-4">
           <motion.div className="max-w-md w-full" {...fadeInUp}>
@@ -356,7 +356,7 @@ export default function ReviewPage() {
 
   if (pageState === "submitted") {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
         <ReviewHeader />
         <main className="flex-1 flex items-center justify-center p-4">
           <motion.div className="max-w-md w-full" {...fadeInUp}>
@@ -413,7 +413,7 @@ export default function ReviewPage() {
   // ---- Render: Valid — Review Form ----
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/50 to-background">
       <ReviewHeader />
 
       <main className="flex-1 py-6 px-4">
@@ -606,7 +606,7 @@ export default function ReviewPage() {
 
 function ReviewHeader() {
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
+    <header className="bg-background/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -629,7 +629,7 @@ function ReviewHeader() {
 
 function ReviewFooter() {
   return (
-    <footer className="border-t border-border/50 bg-white/80 mt-auto">
+    <footer className="border-t border-border/50 bg-background/80 mt-auto">
       <div className="max-w-4xl mx-auto px-4 py-4 text-center">
         <p className="text-xs text-muted-foreground">
           Powered by{" "}

@@ -81,7 +81,7 @@ function SkeletonCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+        <div key={i} className="rounded-2xl border bg-background shadow-sm overflow-hidden">
           <Skeleton className="h-2 w-full bg-gradient-to-r from-emerald-400 to-emerald-600" />
           <div className="p-5 space-y-4">
             <Skeleton className="h-6 w-3/4" />
@@ -110,7 +110,7 @@ function SkeletonCards() {
 function ClinicCard({ clinic, index, isFeatured }: { clinic: ClinicData; index: number; isFeatured?: boolean }) {
   return (
     <div
-      className={`group rounded-2xl border bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative ${isFeatured ? 'ring-1 ring-emerald-200' : ''}`}
+      className={`group rounded-2xl border bg-background shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative ${isFeatured ? 'ring-1 ring-emerald-200' : ''}`}
       style={{
         animation: `fadeInUp 0.4s ease-out ${index * 0.06}s both`,
       }}
@@ -239,7 +239,7 @@ function ClinicCard({ clinic, index, isFeatured }: { clinic: ClinicData; index: 
         </div>
 
         {/* Subtle gradient overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/60 to-transparent pointer-events-none rounded-b-2xl" />
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background/60 to-transparent pointer-events-none rounded-b-2xl" />
       </div>
     </div>
   );
@@ -361,7 +361,7 @@ export default function ClinicsDirectoryPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-emerald-50/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-emerald-50/30">
       <PublicNavbar showHome />
 
       {/* Main Content */}
@@ -379,7 +379,7 @@ export default function ClinicsDirectoryPage() {
             placeholder="Search by clinic name or city..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 bg-white border-gray-200 focus:border-emerald-400 focus:ring-emerald-400/20 rounded-xl text-base"
+            className="pl-10 h-11 bg-background border-gray-200 focus:border-emerald-400 focus:ring-emerald-400/20 rounded-xl text-base"
           />
           {searchQuery && (
             <button
@@ -396,7 +396,7 @@ export default function ClinicsDirectoryPage() {
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
           {/* Specialty Filter */}
           <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
-            <SelectTrigger className="w-full sm:w-[220px] bg-white border-gray-200 rounded-xl">
+            <SelectTrigger className="w-full sm:w-[220px] bg-background border-gray-200 rounded-xl">
               <SelectValue placeholder="Specialty" />
             </SelectTrigger>
             <SelectContent>
@@ -411,7 +411,7 @@ export default function ClinicsDirectoryPage() {
 
           {/* City Filter */}
           <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="w-full sm:w-[200px] bg-white border-gray-200 rounded-xl">
+            <SelectTrigger className="w-full sm:w-[200px] bg-background border-gray-200 rounded-xl">
               <SelectValue placeholder="City" />
             </SelectTrigger>
             <SelectContent>
@@ -426,7 +426,7 @@ export default function ClinicsDirectoryPage() {
 
           {/* Sort */}
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-[180px] bg-white border-gray-200 rounded-xl">
+            <SelectTrigger className="w-full sm:w-[180px] bg-background border-gray-200 rounded-xl">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
