@@ -5,7 +5,7 @@ import { cache, CacheKeys, CacheTTL } from "@/lib/cache";
 export async function GET() {
   try {
     const data = await cache.getOrSet(
-      CacheKeys.systemConfig(),
+      CacheKeys.publicTaxonomies(),
       async () => {
         const [specialties, insurances, providerCountResult] = await Promise.all([
           db.specialty.findMany({

@@ -184,6 +184,9 @@ export const CacheKeys = {
 
   // Popular specialties: "popular:specialties"
   popularSpecialties: () => "popular:specialties",
+
+  // Public taxonomies (specialties + insurances): "taxonomies:public"
+  publicTaxonomies: () => "taxonomies:public",
 } as const;
 
 // Default TTLs in seconds
