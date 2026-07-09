@@ -23,6 +23,17 @@ export async function GET() {
 
     const data = await cache.getOrSet("admin:dashboard", () => buildAdminData(), 60);
 
+    // Guard: never cache / return an empty result set (e.g. transient DB miss
+    // on a cold serverless instance). Force a fresh rebuild next time.
+    const isEmpty =
+      !data ||
+      (data.clinicSummary?.length === 0 &&
+        data.staffList?.length === 0 &&
+        data.platformStats?.totalClinics === 0);
+    if (isEmpty) {
+      cache.delete("admin:dashboard");
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("[ADMIN_DASHBOARD]", error);
