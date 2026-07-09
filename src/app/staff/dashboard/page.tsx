@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Building2,
   Activity,
+  Shield,
   Phone,
   Video,
   UserCheck,
@@ -299,7 +300,10 @@ export default function DashboardPage() {
   const user = session?.user as DoctASessionUser | undefined;
 
   const fetchDashboard = useCallback(async () => {
-    if (!user?.clinicId) return;
+    if (!user?.clinicId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -353,7 +357,35 @@ export default function DashboardPage() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    // System Manager has no clinicId — dashboard data never loads.
+    // Show a helpful redirect instead of a blank page.
+    return (
+      <Card className="border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/20">
+        <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="size-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+            <Shield className="size-7 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="text-center max-w-sm">
+            <p className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+              No Clinic Assigned
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              This dashboard is clinic-specific. You are logged in as a System&nbsp;Manager
+              with no clinic attached. Use the&nbsp;<strong>Admin</strong> panel for
+              cross-clinic management.
+            </p>
+          </div>
+          <Button asChild className="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Link href="/staff/dashboard/admin">
+              Go to System Admin
+              <ArrowRight className="size-4 ml-2" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-300">
