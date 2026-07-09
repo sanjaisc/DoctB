@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Component } from "react";
 import { toast } from "sonner";
 import {
   Shield,
@@ -288,21 +288,32 @@ export default function SystemAdminPage() {
   const fetchData = async () => {
     setLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const res = await fetch("/api/staff/admin");
+      const res = await fetch("/api/staff/admin", { signal: controller.signal });
       if (res.status === 403) {
         setError("You do not have permission to view this page.");
         return;
       }
       if (!res.ok) {
-        setError("Failed to load admin data. Please try again.");
+        setError(`Failed to load admin data (status ${res.status}). Please try again.`);
         return;
       }
       const json = await res.json();
+      if (!json || !json.platformStats || !Array.isArray(json.clinicSummary)) {
+        setError("Received an unexpected response from the server. Please try again.");
+        return;
+      }
       setData(json);
-    } catch {
-      setError("Network error. Please check your connection.");
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("The request timed out. The server may be slow or unavailable.");
+      } else {
+        setError("Network error. Please check your connection.");
+      }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -345,6 +356,7 @@ export default function SystemAdminPage() {
   if (loading || !data) {
     return (
       <div className="space-y-6">
+        <p className="text-sm text-muted-foreground">Loading system administration dashboard…</p>
         {/* Header skeleton */}
         <div className="space-y-2">
           <Skeleton className="h-8 w-56" />
@@ -374,6 +386,7 @@ export default function SystemAdminPage() {
 
   // ---- Loaded State ----
   return (
+    <AdminErrorBoundary onRetry={fetchData}>
     <div className="space-y-6 animate-in fade-in-0 duration-300">
       <PageHeader
         title="System Administration"
@@ -649,12 +662,61 @@ export default function SystemAdminPage() {
         onSuccess={() => fetchData()}
       />
     </div>
+    </AdminErrorBoundary>
   );
 }
 
 // ---------------------------------------------------------------------------
 // Sub-Components
 // ---------------------------------------------------------------------------
+
+// Local error boundary: guarantees a render-time exception in the dashboard
+// content shows a visible message instead of an empty/blank white region.
+class AdminErrorBoundary extends Component<
+  { children: React.ReactNode; onRetry?: () => void },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900">
+          <CardContent className="flex flex-col items-start gap-3 p-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="size-8 text-red-500 shrink-0" />
+              <div>
+                <p className="font-semibold text-red-800 dark:text-red-300">
+                  Something went wrong rendering this dashboard
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                  {this.state.error.message || "Unknown error"}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                this.setState({ error: null });
+                this.props.onRetry?.();
+              }}
+              className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/40"
+            >
+              <RefreshCw className="size-4 mr-2" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function HealthItem({
   icon,
